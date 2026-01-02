@@ -3,106 +3,110 @@
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
+type FormData = {
+  hasScheduled: boolean | null;
+  // For already scheduled
+  name: string;
+  email: string;
+  // For new leads
+  businessName: string;
+  serviceType: string;
+  serviceArea: string;
+  currentLeads: string;
+  phone: string;
+};
+
 function PreCallContent() {
   const searchParams = useSearchParams();
-  const [showCalendarOptions, setShowCalendarOptions] = useState(false);
-  const [calendarAdded, setCalendarAdded] = useState(false);
+  const [step, setStep] = useState(0); // 0 = initial choice, 1-4 = form steps
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState<FormData>({
+    hasScheduled: null,
+    name: "",
+    email: "",
+    businessName: "",
+    serviceType: "",
+    serviceArea: "",
+    currentLeads: "",
+    phone: "",
+  });
 
-  // Get details from URL params or use defaults
-  const prospectName = searchParams.get("name") || "there";
-  const callDate = searchParams.get("date") || ""; // Format: 2026-01-15
-  const callTime = searchParams.get("time") || ""; // Format: 14:00
-  const meetLink = searchParams.get("meet") || "https://meet.google.com";
-
-  // Meeting config
-  const MEETING_TITLE = "HomeField Hub Strategy Call";
-  const MEETING_DURATION_MINUTES = 15;
-  const MEETING_DESCRIPTION = `Strategy call with HomeField Hub team.\n\nJoin: ${meetLink}\n\nWhat we'll cover:\n• Your current situation\n• How we generate qualified leads\n• Next steps if it's a fit`;
-
-  // Generate calendar URLs
-  const getGoogleCalendarUrl = () => {
-    if (!callDate || !callTime) return null;
-
-    const startDate = new Date(`${callDate}T${callTime}:00`);
-    const endDate = new Date(startDate.getTime() + MEETING_DURATION_MINUTES * 60000);
-
-    const formatDate = (date: Date) => {
-      return date.toISOString().replace(/-|:|\.\d{3}/g, "").slice(0, -1);
-    };
-
-    const params = new URLSearchParams({
-      action: "TEMPLATE",
-      text: MEETING_TITLE,
-      dates: `${formatDate(startDate)}/${formatDate(endDate)}`,
-      details: MEETING_DESCRIPTION,
-      location: meetLink,
-    });
-
-    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  const updateForm = (field: keyof FormData, value: string | boolean) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const downloadIcsFile = () => {
-    if (!callDate || !callTime) return;
-
-    const startDate = new Date(`${callDate}T${callTime}:00`);
-    const endDate = new Date(startDate.getTime() + MEETING_DURATION_MINUTES * 60000);
-
-    const formatIcsDate = (date: Date) => {
-      return date.toISOString().replace(/-|:|\.\d{3}/g, "").slice(0, -1) + "Z";
-    };
-
-    const icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//HomeField Hub//NONSGML v1.0//EN
-BEGIN:VEVENT
-UID:${Date.now()}@homefieldhub.com
-DTSTAMP:${formatIcsDate(new Date())}
-DTSTART:${formatIcsDate(startDate)}
-DTEND:${formatIcsDate(endDate)}
-SUMMARY:${MEETING_TITLE}
-DESCRIPTION:${MEETING_DESCRIPTION.replace(/\n/g, "\\n")}
-LOCATION:${meetLink}
-END:VEVENT
-END:VCALENDAR`;
-
-    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "homefield-hub-call.ics";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    setCalendarAdded(true);
-    setShowCalendarOptions(false);
+  const handleScheduledYes = () => {
+    updateForm("hasScheduled", true);
+    setStep(1);
   };
 
-  const handleGoogleCalendar = () => {
-    const url = getGoogleCalendarUrl();
-    if (url) {
-      window.open(url, "_blank");
-      setCalendarAdded(true);
-      setShowCalendarOptions(false);
+  const handleScheduledNo = () => {
+    updateForm("hasScheduled", false);
+    setStep(1);
+  };
+
+  const submitConfirmation = async () => {
+    setLoading(true);
+    // Send to Supabase or webhook
+    try {
+      await fetch("/api/vsl-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "watched_vsl",
+          name: formData.name,
+          email: formData.email,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+    } catch (e) {
+      console.error(e);
     }
+    setLoading(false);
+    setSubmitted(true);
   };
 
-  const hasScheduledTime = callDate && callTime;
-
-  // Format date for display
-  const getFormattedDateTime = () => {
-    if (!callDate || !callTime) return null;
-    const date = new Date(`${callDate}T${callTime}:00`);
-    return date.toLocaleString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
+  const submitNewLead = async () => {
+    setLoading(true);
+    try {
+      await fetch("/api/vsl-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "new_lead",
+          ...formData,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+    } catch (e) {
+      console.error(e);
+    }
+    setLoading(false);
+    setSubmitted(true);
   };
+
+  const serviceTypes = [
+    "Roofing",
+    "Remodeling",
+    "HVAC",
+    "Plumbing",
+    "Electrical",
+    "Landscaping",
+    "Painting",
+    "Other",
+  ];
+
+  const leadOptions = [
+    "0-5 per month",
+    "5-15 per month",
+    "15-30 per month",
+    "30+ per month",
+  ];
+
+  // Progress bar for multi-step form
+  const totalSteps = formData.hasScheduled ? 1 : 4;
+  const progress = formData.hasScheduled === null ? 0 : (step / totalSteps) * 100;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
@@ -164,104 +168,269 @@ END:VCALENDAR`;
         </div>
 
         {/* Action Section */}
-        <div className="bg-zinc-900 rounded-xl p-6 md:p-8 border border-zinc-800 text-center">
-          <h3 className="text-xl font-semibold mb-3">
-            {hasScheduledTime ? "Your Call is Confirmed" : "Ready to Get Started?"}
-          </h3>
-
-          {hasScheduledTime && getFormattedDateTime() && (
-            <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg py-3 px-4 mb-4 inline-block">
-              <p className="text-orange-400 font-medium">{getFormattedDateTime()}</p>
+        <div className="bg-zinc-900 rounded-xl p-6 md:p-8 border border-zinc-800">
+          {/* Progress Bar */}
+          {step > 0 && !submitted && (
+            <div className="mb-6">
+              <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-orange-500 transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-xs text-zinc-500 mt-2 text-center">
+                Step {step} of {totalSteps}
+              </p>
             </div>
           )}
 
-          <p className="text-zinc-400 mb-6 max-w-md mx-auto">
-            {hasScheduledTime
-              ? "Watch the video above so we can hit the ground running. Add this call to your calendar so you don't miss it."
-              : "Watch the video above, then book a quick 15-minute call to see if we're a fit."}
-          </p>
+          {submitted ? (
+            /* Success State */
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold mb-2">
+                {formData.hasScheduled ? "See You Soon!" : "We'll Be In Touch!"}
+              </h3>
+              <p className="text-zinc-400">
+                {formData.hasScheduled
+                  ? "Thanks for watching. Looking forward to our call."
+                  : "We'll reach out within 24 hours to schedule your strategy call."}
+              </p>
+            </div>
+          ) : step === 0 ? (
+            /* Initial Choice */
+            <div className="text-center">
+              <h3 className="text-xl font-semibold mb-3">
+                Have you already scheduled a call with us?
+              </h3>
+              <p className="text-zinc-400 mb-6">
+                Watch the video above, then let us know where you're at.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={handleScheduledYes}
+                  className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-8 rounded-lg transition-colors"
+                >
+                  Yes, I have a call scheduled
+                </button>
+                <button
+                  onClick={handleScheduledNo}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors border border-zinc-700"
+                >
+                  No, I'd like to book one
+                </button>
+              </div>
+            </div>
+          ) : formData.hasScheduled ? (
+            /* Already Scheduled - Just confirm they watched */
+            <div className="max-w-md mx-auto">
+              <h3 className="text-xl font-semibold mb-2 text-center">
+                Confirm You Watched
+              </h3>
+              <p className="text-zinc-400 mb-6 text-center text-sm">
+                Drop your info so we know you're ready for the call.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Your Name</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => updateForm("name", e.target.value)}
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-orange-500"
+                    placeholder="John Smith"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => updateForm("email", e.target.value)}
+                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-orange-500"
+                    placeholder="john@company.com"
+                  />
+                </div>
+                <button
+                  onClick={submitConfirmation}
+                  disabled={!formData.name || !formData.email || loading}
+                  className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg transition-colors"
+                >
+                  {loading ? "Sending..." : "I'm Ready for My Call"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* New Lead Multi-Step Form */
+            <div className="max-w-md mx-auto">
+              {step === 1 && (
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 text-center">
+                    What type of business do you run?
+                  </h3>
+                  <p className="text-zinc-400 mb-6 text-center text-sm">
+                    We specialize in home service contractors.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {serviceTypes.map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => {
+                          updateForm("serviceType", type);
+                          setStep(2);
+                        }}
+                        className={`py-3 px-4 rounded-lg border transition-colors text-left ${
+                          formData.serviceType === type
+                            ? "bg-orange-500 border-orange-500"
+                            : "bg-zinc-800 border-zinc-700 hover:border-orange-500"
+                        }`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-          {hasScheduledTime ? (
-            <div className="relative inline-block">
-              {!calendarAdded ? (
-                <>
+              {step === 2 && (
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 text-center">
+                    How many leads are you getting now?
+                  </h3>
+                  <p className="text-zinc-400 mb-6 text-center text-sm">
+                    Helps us understand where you're starting from.
+                  </p>
+                  <div className="space-y-3">
+                    {leadOptions.map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => {
+                          updateForm("currentLeads", option);
+                          setStep(3);
+                        }}
+                        className={`w-full py-3 px-4 rounded-lg border transition-colors text-left ${
+                          formData.currentLeads === option
+                            ? "bg-orange-500 border-orange-500"
+                            : "bg-zinc-800 border-zinc-700 hover:border-orange-500"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
                   <button
-                    onClick={() => setShowCalendarOptions(!showCalendarOptions)}
-                    className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-8 rounded-lg transition-colors inline-flex items-center gap-2"
+                    onClick={() => setStep(1)}
+                    className="mt-4 text-zinc-500 hover:text-white text-sm"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    Add to Calendar
-                    <svg className={`w-4 h-4 transition-transform ${showCalendarOptions ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    ← Back
                   </button>
+                </div>
+              )}
 
-                  {showCalendarOptions && (
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl overflow-hidden z-10 min-w-[200px]">
-                      <button
-                        onClick={handleGoogleCalendar}
-                        className="w-full px-4 py-3 text-left hover:bg-zinc-700 transition-colors flex items-center gap-3"
-                      >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24">
-                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                        Google Calendar
-                      </button>
-                      <button
-                        onClick={downloadIcsFile}
-                        className="w-full px-4 py-3 text-left hover:bg-zinc-700 transition-colors flex items-center gap-3 border-t border-zinc-700"
-                      >
-                        <svg className="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Apple / Outlook (.ics)
-                      </button>
+              {step === 3 && (
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 text-center">
+                    Where do you service?
+                  </h3>
+                  <p className="text-zinc-400 mb-6 text-center text-sm">
+                    City, metro area, or state.
+                  </p>
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      value={formData.serviceArea}
+                      onChange={(e) => updateForm("serviceArea", e.target.value)}
+                      className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-orange-500"
+                      placeholder="e.g. Charlotte, NC metro"
+                    />
+                    <button
+                      onClick={() => formData.serviceArea && setStep(4)}
+                      disabled={!formData.serviceArea}
+                      className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg transition-colors"
+                    >
+                      Continue
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setStep(2)}
+                    className="mt-4 text-zinc-500 hover:text-white text-sm"
+                  >
+                    ← Back
+                  </button>
+                </div>
+              )}
+
+              {step === 4 && (
+                <div>
+                  <h3 className="text-xl font-semibold mb-2 text-center">
+                    How can we reach you?
+                  </h3>
+                  <p className="text-zinc-400 mb-6 text-center text-sm">
+                    We'll reach out to schedule your strategy call.
+                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Business Name</label>
+                      <input
+                        type="text"
+                        value={formData.businessName}
+                        onChange={(e) => updateForm("businessName", e.target.value)}
+                        className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-orange-500"
+                        placeholder="ABC Roofing"
+                      />
                     </div>
-                  )}
-                </>
-              ) : (
-                <div className="bg-green-500/20 text-green-400 py-3 px-6 rounded-lg inline-flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Added to Calendar
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Your Name</label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => updateForm("name", e.target.value)}
+                        className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-orange-500"
+                        placeholder="John Smith"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Phone</label>
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => updateForm("phone", e.target.value)}
+                        className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-orange-500"
+                        placeholder="(555) 123-4567"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Email</label>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => updateForm("email", e.target.value)}
+                        className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-orange-500"
+                        placeholder="john@abcroofing.com"
+                      />
+                    </div>
+                    <button
+                      onClick={submitNewLead}
+                      disabled={!formData.name || !formData.phone || !formData.email || loading}
+                      className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg transition-colors"
+                    >
+                      {loading ? "Sending..." : "Request My Strategy Call"}
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setStep(3)}
+                    className="mt-4 text-zinc-500 hover:text-white text-sm"
+                  >
+                    ← Back
+                  </button>
                 </div>
               )}
             </div>
-          ) : (
-            <a
-              href="/demo"
-              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-8 rounded-lg transition-colors inline-flex items-center gap-2"
-            >
-              Book Your Call
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </a>
           )}
-
-          {/* Meeting Details */}
-          <div className="mt-8 pt-6 border-t border-zinc-800">
-            <div className="grid md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="text-zinc-500 mb-1">Duration</p>
-                <p className="font-medium">15 Minutes</p>
-              </div>
-              <div>
-                <p className="text-zinc-500 mb-1">Platform</p>
-                <p className="font-medium">Google Meet</p>
-              </div>
-              <div>
-                <p className="text-zinc-500 mb-1">What to Expect</p>
-                <p className="font-medium">Strategy Discussion</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* What We'll Cover */}
