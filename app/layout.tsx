@@ -13,12 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dr. Squeegee House Washing | Charlotte NC Pressure Washing",
-  description: "Professional house washing and pressure washing services in Charlotte, NC. Soft wash safe for all siding types. Driveways, windows, gutters, and more. Free quotes, same-week appointments.",
-  keywords: ["house washing Charlotte", "pressure washing Charlotte NC", "soft wash", "driveway cleaning", "gutter cleaning Charlotte"],
+  title: "HomeField Hub | AI-Powered Lead Generation for Contractors",
+  description: "Fill your calendar with qualified appointments. AI-powered lead generation and booking for home service contractors. Pay-per-appointment, no risk.",
+  keywords: ["contractor leads", "roofing leads", "home service marketing", "AI lead generation", "contractor appointments"],
   openGraph: {
-    title: "Dr. Squeegee House Washing | Charlotte NC",
-    description: "Professional house washing services. Safe soft wash for all siding types. Free quotes available.",
+    title: "HomeField Hub | Qualified Leads for Contractors",
+    description: "AI-powered lead generation. Fill your calendar with qualified appointments. Pay-per-appointment.",
     type: "website",
   },
 };
