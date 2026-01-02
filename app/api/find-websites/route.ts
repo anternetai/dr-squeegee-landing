@@ -38,13 +38,13 @@ async function searchCompanyWebsite(businessName: string, cityState: string): Pr
 
     const html = await response.text();
 
-    // Find result URLs
-    const urlPattern = /href="(https?:\/\/(?:www\.)?[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,}[^"]*)"/g;
+    // DuckDuckGo wraps URLs in uddg parameter - extract those
+    const uddgPattern = /uddg=([^&"]+)/g;
     let match;
 
-    while ((match = urlPattern.exec(html)) !== null) {
-      const foundUrl = match[1];
+    while ((match = uddgPattern.exec(html)) !== null) {
       try {
+        const foundUrl = decodeURIComponent(match[1]);
         const urlObj = new URL(foundUrl);
         const domain = urlObj.hostname.toLowerCase();
 
