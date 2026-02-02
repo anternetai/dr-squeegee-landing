@@ -13,9 +13,9 @@ export default function OnboardPage() {
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center gap-3">
             <img
-              src="/logo.png"
+              src="/favicon2.svg"
               alt="HomeField Hub"
-              className="w-10 h-10 rounded-lg object-contain"
+              className="w-10 h-10 object-contain"
             />
             <span className="text-gray-900 font-semibold text-lg">HomeField Hub</span>
           </div>
