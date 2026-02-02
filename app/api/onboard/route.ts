@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
       first_name: body.firstName,
       last_name: body.lastName,
       legal_business_name: body.legalBusinessName,
+      business_ein: body.businessEin || null,
       working_hours: body.workingHours,
       business_phone: body.businessPhone,
       street_address: body.streetAddress,

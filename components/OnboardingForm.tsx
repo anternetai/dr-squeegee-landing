@@ -39,6 +39,7 @@ const formSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   legalBusinessName: z.string().min(1, "Legal business name is required"),
+  businessEin: z.string().optional(),
   workingHours: z.string().min(1, "Working hours is required"),
   businessPhone: z.string().min(1, "Business phone is required"),
   streetAddress: z.string().min(1, "Street address is required"),
@@ -165,7 +166,7 @@ export function OnboardingForm() {
         </div>
       </div>
 
-      {/* Row 2: Legal Business Name, Working Hours */}
+      {/* Row 2: Legal Business Name, Business EIN */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label htmlFor="legalBusinessName" className={labelClass}>
@@ -180,6 +181,21 @@ export function OnboardingForm() {
           {errors.legalBusinessName && <p className={errorClass}>{errors.legalBusinessName.message}</p>}
         </div>
 
+        <div>
+          <label htmlFor="businessEin" className={labelClass}>
+            Business EIN / Tax ID <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <Input
+            id="businessEin"
+            placeholder="XX-XXXXXXX"
+            {...register("businessEin")}
+            className={inputClass}
+          />
+        </div>
+      </div>
+
+      {/* Row 3: Working Hours */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label htmlFor="workingHours" className={labelClass}>
             Working Hours<span className={requiredClass}>*</span>
