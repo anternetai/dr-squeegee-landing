@@ -64,26 +64,28 @@ export async function POST(request: NextRequest) {
       .replace(/^-|-$/g, "")
       .substring(0, 50)
 
-    // Trigger n8n webhook (fire and forget - don't block on this)
-    fetch(N8N_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clientId,
-        companyName: body.legalBusinessName,
-        companySlug,
-        ownerName: `${body.firstName} ${body.lastName}`,
-        email: body.emailForNotifications,
-        phone: body.cellPhoneForNotifications,
-        city: body.city,
-        state: body.state,
-        timeZone: body.timeZone,
-        onboardingCallBooked: body.onboardingCallBooked === "Yes",
-      }),
-    }).catch((webhookError) => {
+    // Trigger n8n webhook - must await to prevent Vercel from killing the function early
+    try {
+      await fetch(N8N_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId,
+          companyName: body.legalBusinessName,
+          companySlug,
+          ownerName: `${body.firstName} ${body.lastName}`,
+          email: body.emailForNotifications,
+          phone: body.cellPhoneForNotifications,
+          city: body.city,
+          state: body.state,
+          timeZone: body.timeZone,
+          onboardingCallBooked: body.onboardingCallBooked === "Yes",
+        }),
+      })
+    } catch (webhookError) {
       // Log but don't fail the request if webhook fails
       console.error("n8n webhook error:", webhookError)
-    })
+    }
 
     return NextResponse.json({
       success: true,
