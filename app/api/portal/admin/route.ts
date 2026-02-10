@@ -23,10 +23,11 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  // Fetch all clients with aggregated metrics
+  // Fetch all clients with aggregated metrics (exclude soft-deleted)
   const { data: clients } = await supabase
     .from("agency_clients")
     .select("*")
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
 
   if (!clients) {
