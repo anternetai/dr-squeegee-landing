@@ -92,15 +92,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: linkError.message }, { status: 500 })
   }
 
-  // Build the confirmation URL from the token properties
+  // Build a direct link to our accept-invite page with the token hash
+  // This avoids Supabase's redirect flow entirely — we verify client-side
   const {
-    properties: { hashed_token, verification_type },
+    properties: { hashed_token },
   } = linkData
 
-  const confirmUrl = new URL("/auth/v1/verify", process.env.NEXT_PUBLIC_SUPABASE_URL!)
-  confirmUrl.searchParams.set("token", hashed_token)
-  confirmUrl.searchParams.set("type", verification_type)
-  confirmUrl.searchParams.set("redirect_to", redirectTo)
+  const confirmUrl = new URL("/portal/accept-invite", siteUrl)
+  confirmUrl.searchParams.set("token_hash", hashed_token)
+  confirmUrl.searchParams.set("type", "invite")
 
   // Send invite email via Resend HTTP API
   const resendRes = await fetch("https://api.resend.com/emails", {

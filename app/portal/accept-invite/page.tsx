@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { useForm } from "react-hook-form"
 import { z } from "zod/v4"
@@ -26,6 +27,7 @@ type PasswordForm = z.infer<typeof passwordSchema>
 
 export default function AcceptInvitePage() {
   const supabase = createClient()
+  const searchParams = useSearchParams()
   const [status, setStatus] = useState<"loading" | "ready" | "success" | "error">("loading")
   const [email, setEmail] = useState("")
   const [serverError, setServerError] = useState("")
@@ -39,21 +41,36 @@ export default function AcceptInvitePage() {
   })
 
   useEffect(() => {
-    async function checkSession() {
-      // The auth callback route already exchanged the PKCE code for a session.
-      // We just need to pick it up from the cookies.
-      const { data: { user } } = await supabase.auth.getUser()
+    async function verifyInvite() {
+      const tokenHash = searchParams.get("token_hash")
+      const type = searchParams.get("type")
 
-      if (user) {
-        setEmail(user.email ?? "")
-        setStatus("ready")
-      } else {
+      if (!tokenHash || type !== "invite") {
         setServerError("Invalid or expired invite link. Please ask your admin to resend the invitation.")
         setStatus("error")
+        return
       }
+
+      // Sign out any existing session first
+      await supabase.auth.signOut()
+
+      // Verify the token hash directly — this creates a session client-side
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: "invite",
+      })
+
+      if (error || !data.user) {
+        setServerError(error?.message || "Could not verify invite link. It may have expired.")
+        setStatus("error")
+        return
+      }
+
+      setEmail(data.user.email ?? "")
+      setStatus("ready")
     }
 
-    checkSession()
+    verifyInvite()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function onSubmit(data: PasswordForm) {
@@ -70,7 +87,7 @@ export default function AcceptInvitePage() {
 
     setStatus("success")
 
-    // Redirect to dashboard after a brief moment
+    // Full page reload to set server cookies
     setTimeout(() => {
       window.location.href = "/portal/dashboard"
     }, 1500)
