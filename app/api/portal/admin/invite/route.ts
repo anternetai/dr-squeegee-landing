@@ -73,7 +73,8 @@ export async function POST(request: Request) {
   )
 
   // Generate invite link without sending email (bypasses Supabase SMTP)
-  const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL || "https://homefieldhub.com"}/portal/accept-invite`
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://homefieldhub.com"
+  const redirectTo = `${siteUrl}/auth/callback?next=/portal/accept-invite`
 
   const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
     type: "invite",

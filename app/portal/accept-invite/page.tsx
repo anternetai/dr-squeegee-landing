@@ -39,32 +39,21 @@ export default function AcceptInvitePage() {
   })
 
   useEffect(() => {
-    // Listen for auth state changes — Supabase client auto-detects
-    // the hash fragment (#access_token=...) and establishes a session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (session?.user) {
-          setEmail(session.user.email ?? "")
-          setStatus("ready")
-        }
+    async function checkSession() {
+      // The auth callback route already exchanged the PKCE code for a session.
+      // We just need to pick it up from the cookies.
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (user) {
+        setEmail(user.email ?? "")
+        setStatus("ready")
+      } else {
+        setServerError("Invalid or expired invite link. Please ask your admin to resend the invitation.")
+        setStatus("error")
       }
-    )
-
-    // Timeout — if no session is established after 5 seconds, show error
-    const timer = setTimeout(() => {
-      setStatus((prev) => {
-        if (prev === "loading") {
-          setServerError("Invalid or expired invite link. Please ask your admin to resend the invitation.")
-          return "error"
-        }
-        return prev
-      })
-    }, 5000)
-
-    return () => {
-      subscription.unsubscribe()
-      clearTimeout(timer)
     }
+
+    checkSession()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function onSubmit(data: PasswordForm) {
