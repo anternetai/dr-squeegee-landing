@@ -1,10 +1,22 @@
 "use client"
 
-import { AlertTriangle, Users, TrendingDown } from "lucide-react"
+import { useState } from "react"
+import { AlertTriangle, Users, TrendingDown, Trash2 } from "lucide-react"
 import useSWR from "swr"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { formatCurrency, formatPercent, getRelativeTime } from "@/lib/portal/format"
 import type { AdminClientMetrics } from "@/lib/portal/types"
 
@@ -16,9 +28,27 @@ async function fetchAdminData() {
 }
 
 export function AdminDashboard() {
-  const { data: clients, isLoading } = useSWR("admin-clients", fetchAdminData, {
+  const { data: clients, isLoading, mutate } = useSWR("admin-clients", fetchAdminData, {
     revalidateOnFocus: false,
   })
+  const [deleteTarget, setDeleteTarget] = useState<AdminClientMetrics | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/portal/admin/clients/${deleteTarget.id}`, {
+        method: "DELETE",
+      })
+      if (res.ok) {
+        mutate()
+      }
+    } finally {
+      setDeleting(false)
+      setDeleteTarget(null)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -40,6 +70,7 @@ export function AdminDashboard() {
   }
 
   return (
+    <>
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {clients.map((client) => {
         const daysSinceLastLead = client.last_lead_at
@@ -53,9 +84,9 @@ export function AdminDashboard() {
         const lowShowRate = client.appointment_count > 0 && client.show_rate < 50
 
         return (
-          <Card key={client.id} className="relative">
+          <Card key={client.id}>
             {(noLeadsAlert || lowShowRate) && (
-              <div className="absolute right-3 top-3 flex gap-1">
+              <div className="flex gap-1 px-6 pt-4">
                 {noLeadsAlert && (
                   <Badge variant="outline" className="border-yellow-500 text-yellow-600 dark:text-yellow-400">
                     <AlertTriangle className="mr-1 size-3" />
@@ -71,10 +102,23 @@ export function AdminDashboard() {
               </div>
             )}
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">{client.legal_business_name}</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {client.first_name} {client.last_name} &middot; {client.service_type}
-              </p>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <CardTitle className="text-base">{client.legal_business_name}</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    {client.first_name} {client.last_name} &middot; {client.service_type}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
+                  onClick={() => setDeleteTarget(client)}
+                  aria-label={`Delete ${client.legal_business_name}`}
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-3 text-sm">
@@ -115,5 +159,31 @@ export function AdminDashboard() {
         )
       })}
     </div>
+
+    <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete client?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently delete{" "}
+            <span className="font-medium text-foreground">
+              {deleteTarget?.legal_business_name}
+            </span>{" "}
+            and all their data. This cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={deleting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }

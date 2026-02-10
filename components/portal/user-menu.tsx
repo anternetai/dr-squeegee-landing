@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { LogOut, Settings, User } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
@@ -48,9 +49,11 @@ export function UserMenu({ name, email }: UserMenuProps) {
         </SidebarMenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="w-56">
-        <DropdownMenuItem disabled>
-          <Settings className="mr-2 size-4" />
-          Settings
+        <DropdownMenuItem asChild>
+          <Link href="/portal/settings">
+            <Settings className="mr-2 size-4" />
+            Settings
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>

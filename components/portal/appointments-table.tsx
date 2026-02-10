@@ -35,6 +35,12 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { StatusBadge } from "./status-badge"
 import { formatDateTime, formatCurrency } from "@/lib/portal/format"
 import type { Appointment } from "@/lib/portal/types"
@@ -158,10 +164,19 @@ export function AppointmentsTable({ clientId }: AppointmentsTableProps) {
             <TabsTrigger value="past">Past</TabsTrigger>
           </TabsList>
         </Tabs>
-        <Button variant="outline" size="sm" onClick={handleExport} disabled={!appointments?.length}>
-          <Download className="mr-1.5 size-3.5" />
-          CSV
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="sm" onClick={handleExport} disabled={!appointments?.length}>
+                <Download className="mr-1.5 size-3.5" />
+                CSV
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Export to CSV &mdash; add to your CRM or spreadsheet
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <div className="rounded-md border">
@@ -188,7 +203,11 @@ export function AppointmentsTable({ clientId }: AppointmentsTableProps) {
                 <TableCell colSpan={4} className="h-32 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <CalendarCheck className="size-8" />
-                    <p>No {tab} appointments.</p>
+                    <p className="font-medium">No {tab} appointments</p>
+                    <p className="max-w-sm text-sm">
+                      When leads are qualified and booked, they&apos;ll appear here
+                      with options to mark attendance and track outcomes.
+                    </p>
                   </div>
                 </TableCell>
               </TableRow>

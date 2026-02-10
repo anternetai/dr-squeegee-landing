@@ -94,9 +94,13 @@ export function ConversationList({ clientId }: ConversationListProps) {
 
   if (!threads?.length) {
     return (
-      <div className="flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground">
+      <div className="flex h-64 flex-col items-center justify-center gap-2 text-center text-muted-foreground">
         <MessageSquare className="size-8" />
-        <p>No conversations yet.</p>
+        <p className="font-medium">No conversations yet</p>
+        <p className="max-w-sm text-sm">
+          Once your first lead comes in, you&apos;ll see the full text thread
+          right here &mdash; every message between your leads and our AI assistant.
+        </p>
       </div>
     )
   }

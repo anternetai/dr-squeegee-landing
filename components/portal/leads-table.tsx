@@ -23,6 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { StatusBadge } from "./status-badge"
 import { formatDate, formatPhone, getRelativeTime } from "@/lib/portal/format"
 import { LEAD_STATUS_CONFIG } from "@/lib/portal/constants"
@@ -133,10 +139,19 @@ export function LeadsTable({ clientId }: LeadsTableProps) {
             ))}
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" onClick={handleExport} disabled={!data?.leads.length}>
-          <Download className="mr-1.5 size-3.5" />
-          CSV
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="sm" onClick={handleExport} disabled={!data?.leads.length}>
+                <Download className="mr-1.5 size-3.5" />
+                CSV
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Export to CSV &mdash; add to your CRM or spreadsheet
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <div className="rounded-md border">
@@ -166,9 +181,10 @@ export function LeadsTable({ clientId }: LeadsTableProps) {
                 <TableCell colSpan={7} className="h-32 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Users className="size-8" />
-                    <p>No leads yet.</p>
-                    <p className="text-sm">
-                      They&apos;ll appear here once your ads start running.
+                    <p className="font-medium">No leads yet</p>
+                    <p className="max-w-sm text-sm">
+                      Once your ads start running, new leads will show up here
+                      automatically. You&apos;ll be able to filter, search, and export them.
                     </p>
                   </div>
                 </TableCell>

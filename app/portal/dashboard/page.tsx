@@ -1,6 +1,6 @@
 "use client"
 
-import { use } from "react"
+import { use, useMemo } from "react"
 import { Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { PortalAuthContext } from "@/components/portal/portal-auth-provider"
@@ -9,9 +9,26 @@ import { PipelineFunnel } from "@/components/portal/pipeline-funnel"
 import { DateRangeFilter } from "@/components/portal/date-range-filter"
 import { Skeleton } from "@/components/ui/skeleton"
 
+function getGreeting(firstName: string) {
+  const hour = new Date().getHours()
+  const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening"
+  const subtitles = [
+    "Here's how things are looking.",
+    "Your leads are working for you.",
+    "Here's your latest snapshot.",
+  ]
+  const subtitle = subtitles[Math.floor(Date.now() / 86400000) % subtitles.length]
+  return { greeting: `Good ${timeOfDay}, ${firstName}`, subtitle }
+}
+
 function DashboardContent() {
   const { user } = use(PortalAuthContext)
   const searchParams = useSearchParams()
+
+  const { greeting, subtitle } = useMemo(
+    () => getGreeting(user?.first_name ?? ""),
+    [user?.first_name]
+  )
 
   if (!user) return null
 
@@ -25,10 +42,10 @@ function DashboardContent() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold" style={{ textWrap: "balance" }}>
-            Dashboard
+            {greeting}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Overview of your lead generation performance
+            {subtitle}
           </p>
         </div>
         <DateRangeFilter />

@@ -1,10 +1,9 @@
 "use client"
 
-import { Bell } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "./theme-toggle"
+import { NotificationDropdown } from "./notification-dropdown"
 
 export function PortalHeader() {
   return (
@@ -12,9 +11,7 @@ export function PortalHeader() {
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-2 h-4" />
       <div className="flex-1" />
-      <Button variant="ghost" size="icon" aria-label="Notifications" disabled>
-        <Bell className="size-4" />
-      </Button>
+      <NotificationDropdown />
       <ThemeToggle />
     </header>
   )

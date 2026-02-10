@@ -1,6 +1,12 @@
 "use client"
 
 import { CreditCard, Download } from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import useSWR from "swr"
 import { createClient } from "@/lib/supabase/client"
 import {
@@ -72,10 +78,19 @@ export function BillingTable({ clientId }: BillingTableProps) {
               {formatCurrency(runningTotal)}
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={!payments?.length}>
-            <Download className="mr-1.5 size-3.5" />
-            CSV
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={handleExport} disabled={!payments?.length}>
+                  <Download className="mr-1.5 size-3.5" />
+                  CSV
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Export to CSV &mdash; add to your CRM or spreadsheet
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </CardContent>
       </Card>
 
@@ -103,9 +118,10 @@ export function BillingTable({ clientId }: BillingTableProps) {
                 <TableCell colSpan={4} className="h-32 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <CreditCard className="size-8" />
-                    <p>No charges yet.</p>
-                    <p className="text-sm">
-                      Charges appear after appointments are marked as showed.
+                    <p className="font-medium">No charges yet</p>
+                    <p className="max-w-sm text-sm">
+                      You&apos;re only charged $200 when an appointment shows up &mdash; no
+                      surprises. Charges will appear here as they happen.
                     </p>
                   </div>
                 </TableCell>
