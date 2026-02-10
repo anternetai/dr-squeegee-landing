@@ -35,8 +35,9 @@ export async function updateSession(request: NextRequest) {
 
   const isPortalRoute = request.nextUrl.pathname.startsWith("/portal")
   const isLoginPage = request.nextUrl.pathname === "/portal/login"
+  const isAcceptInvite = request.nextUrl.pathname === "/portal/accept-invite"
 
-  if (isPortalRoute && !isLoginPage && !user) {
+  if (isPortalRoute && !isLoginPage && !isAcceptInvite && !user) {
     const url = request.nextUrl.clone()
     url.pathname = "/portal/login"
     return NextResponse.redirect(url)
