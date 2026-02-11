@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { CALL_OUTCOME_CONFIG } from "@/lib/portal/constants"
-import { formatPhone, googleVoiceUrl } from "@/lib/portal/format"
+import { formatPhone, handleCall } from "@/lib/portal/format"
 import type { CrmProspect } from "@/lib/portal/types"
 
 interface CallQueueProps {
@@ -219,14 +219,14 @@ export function CallQueue({ prospects, isLoading, onUpdate }: CallQueueProps) {
 
             {/* Phone - large and clickable */}
             {current.phone ? (
-              <a
-                href={googleVoiceUrl(current.phone)}
+              <button
+                onClick={() => handleCall(current.phone!)}
                 className="mt-4 flex items-center justify-center gap-2 text-xl font-semibold text-primary hover:underline sm:text-2xl"
                 style={{ fontVariantNumeric: "tabular-nums" }}
               >
                 <Phone className="size-5 sm:size-6" />
                 {formatPhone(current.phone)}
-              </a>
+              </button>
             ) : (
               <p className="mt-4 text-center text-lg text-muted-foreground">
                 No phone number

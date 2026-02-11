@@ -50,7 +50,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { CALL_OUTCOME_CONFIG } from "@/lib/portal/constants"
-import { formatDate, formatPhone, getRelativeTime, googleVoiceUrl } from "@/lib/portal/format"
+import { formatDate, formatPhone, getRelativeTime, handleCall } from "@/lib/portal/format"
 import type { CrmProspect } from "@/lib/portal/types"
 
 interface ProspectTableProps {
@@ -291,12 +291,12 @@ export function ProspectTable({
                     style={{ fontVariantNumeric: "tabular-nums" }}
                   >
                     {prospect.phone ? (
-                      <a
-                        href={googleVoiceUrl(prospect.phone!)} target="_blank" rel="noopener noreferrer"
+                      <button
+                        onClick={() => handleCall(prospect.phone!)}
                         className="text-primary hover:underline"
                       >
                         {formatPhone(prospect.phone)}
-                      </a>
+                      </button>
                     ) : (
                       <span className="text-muted-foreground">--</span>
                     )}
@@ -333,10 +333,8 @@ export function ProspectTable({
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
                       {prospect.phone && (
-                        <Button variant="ghost" size="icon-xs" asChild>
-                          <a href={googleVoiceUrl(prospect.phone!)} target="_blank" rel="noopener noreferrer" title="Call">
-                            <Phone className="size-3" />
-                          </a>
+                        <Button variant="ghost" size="icon-xs" title="Call" onClick={() => handleCall(prospect.phone!)}>
+                          <Phone className="size-3" />
                         </Button>
                       )}
                       <Button

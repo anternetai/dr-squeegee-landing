@@ -82,3 +82,21 @@ export function googleVoiceUrl(phone: string) {
   const digits = phone.replace(/\D/g, "").replace(/^1/, "")
   return `https://voice.google.com/u/0/calls?a=nc,%2B1${digits}`
 }
+
+function isMobileDevice() {
+  if (typeof window === "undefined") return false
+  return window.matchMedia("(pointer: coarse)").matches
+}
+
+export function handleCall(phone: string) {
+  const digits = phone.replace(/\D/g, "").replace(/^1/, "")
+  if (isMobileDevice()) {
+    window.location.href = `tel:+1${digits}`
+  } else {
+    window.open(
+      googleVoiceUrl(phone),
+      "gv-call",
+      "width=420,height=640,menubar=no,toolbar=no"
+    )
+  }
+}

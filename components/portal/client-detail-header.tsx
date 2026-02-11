@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { formatPhone, formatCurrency, formatPercent, googleVoiceUrl } from "@/lib/portal/format"
+import { formatPhone, formatCurrency, formatPercent, handleCall } from "@/lib/portal/format"
 import { CLIENT_PIPELINE_CONFIG } from "@/lib/portal/constants"
 import type { ClientDetail } from "@/lib/portal/types"
 
@@ -87,15 +87,14 @@ export function ClientDetailHeader({ client, metrics }: ClientDetailHeaderProps)
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" className="size-9" asChild>
-                    <a
-                      href={googleVoiceUrl(client.business_phone)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Phone className="size-4" />
-                      <span className="sr-only">Call</span>
-                    </a>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="size-9"
+                    onClick={() => handleCall(client.business_phone)}
+                  >
+                    <Phone className="size-4" />
+                    <span className="sr-only">Call</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Call via Google Voice</TooltipContent>

@@ -19,12 +19,32 @@ export default async function PortalLayout({
 
   let client: Client | null = null
   if (authUser) {
+    // Try direct match (primary client)
     const { data } = await supabase
       .from("agency_clients")
       .select("*")
       .eq("auth_user_id", authUser.id)
       .single()
     client = data as Client | null
+
+    // Fallback: check if user is a team member
+    if (!client) {
+      const { data: tm } = await supabase
+        .from("client_team_members")
+        .select("client_id")
+        .eq("auth_user_id", authUser.id)
+        .limit(1)
+        .single()
+
+      if (tm) {
+        const { data: parentClient } = await supabase
+          .from("agency_clients")
+          .select("*")
+          .eq("id", tm.client_id)
+          .single()
+        client = parentClient as Client | null
+      }
+    }
   }
 
   return (

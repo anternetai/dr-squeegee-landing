@@ -1,21 +1,40 @@
 "use client"
 
-import { use } from "react"
-import { User, Building2, BellRing } from "lucide-react"
+import { use, useState } from "react"
+import { User, Building2, BellRing, Loader2 } from "lucide-react"
 import { PortalAuthContext } from "./portal-auth-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import { TeamManagement } from "./team-management"
 
 export function SettingsForm() {
-  const { user } = use(PortalAuthContext)
+  const { user, refreshUser } = use(PortalAuthContext)
+  const [savingField, setSavingField] = useState<string | null>(null)
 
   if (!user) return null
 
   const name = `${user.first_name} ${user.last_name}`.trim()
   const email = user.email_for_notifications || user.business_email_for_leads
   const businessName = user.legal_business_name
+
+  async function handleToggle(field: "notify_email" | "notify_sms", checked: boolean) {
+    setSavingField(field)
+    try {
+      const res = await fetch("/api/portal/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: checked }),
+      })
+      if (res.ok) {
+        await refreshUser()
+      }
+    } finally {
+      setSavingField(null)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -90,7 +109,16 @@ export function SettingsForm() {
                   Receive email alerts for new leads and appointments
                 </p>
               </div>
-              <span className="text-sm text-muted-foreground">Enabled</span>
+              <div className="flex items-center gap-2">
+                {savingField === "notify_email" && (
+                  <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+                )}
+                <Switch
+                  checked={user.notify_email}
+                  onCheckedChange={(checked) => handleToggle("notify_email", checked)}
+                  disabled={savingField !== null}
+                />
+              </div>
             </div>
             <Separator />
             <div className="flex items-center justify-between">
@@ -100,14 +128,23 @@ export function SettingsForm() {
                   Get text message alerts for new leads
                 </p>
               </div>
-              <span className="text-sm text-muted-foreground">Enabled</span>
+              <div className="flex items-center gap-2">
+                {savingField === "notify_sms" && (
+                  <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+                )}
+                <Switch
+                  checked={user.notify_sms}
+                  onCheckedChange={(checked) => handleToggle("notify_sms", checked)}
+                  disabled={savingField !== null}
+                />
+              </div>
             </div>
           </div>
-          <p className="mt-4 text-xs text-muted-foreground">
-            Notification preferences will be customizable in a future update.
-          </p>
         </CardContent>
       </Card>
+
+      {/* Team Management */}
+      <TeamManagement />
     </div>
   )
 }

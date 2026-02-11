@@ -30,6 +30,8 @@ export interface Client {
   role: "client" | "admin"
   created_at: string
   onboarding_status: string | null
+  notify_email: boolean
+  notify_sms: boolean
 }
 
 export interface Lead {
@@ -179,5 +181,19 @@ export interface CrmProspect {
   follow_up_at: string | null
   last_called_at: string | null
   import_batch: string | null
+  created_at: string
+}
+
+export type TeamMemberRole = "viewer" | "manager"
+
+export interface TeamMember {
+  id: string
+  client_id: string
+  auth_user_id: string
+  email: string
+  first_name: string | null
+  last_name: string | null
+  role: TeamMemberRole
+  invited_by: string | null
   created_at: string
 }
