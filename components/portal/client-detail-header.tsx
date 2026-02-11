@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { formatPhone, formatCurrency, formatPercent } from "@/lib/portal/format"
+import { formatPhone, formatCurrency, formatPercent, googleVoiceUrl } from "@/lib/portal/format"
 import { CLIENT_PIPELINE_CONFIG } from "@/lib/portal/constants"
 import type { ClientDetail } from "@/lib/portal/types"
 
@@ -88,25 +88,29 @@ export function ClientDetailHeader({ client, metrics }: ClientDetailHeaderProps)
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="icon" className="size-9" asChild>
-                    <a href={`tel:${client.business_phone}`}>
+                    <a
+                      href={googleVoiceUrl(client.business_phone)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <Phone className="size-4" />
                       <span className="sr-only">Call</span>
                     </a>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Call</TooltipContent>
+                <TooltipContent>Call via Google Voice</TooltipContent>
               </Tooltip>
 
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="icon" className="size-9" asChild>
-                    <Link href={`/portal/admin/clients/${client.id}/edit`}>
+                    <Link href={`/portal/settings`}>
                       <Pencil className="size-4" />
                       <span className="sr-only">Edit</span>
                     </Link>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Edit</TooltipContent>
+                <TooltipContent>Edit in Settings</TooltipContent>
               </Tooltip>
             </div>
           </TooltipProvider>

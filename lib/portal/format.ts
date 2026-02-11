@@ -77,3 +77,8 @@ export function getRelativeTime(date: string | Date) {
 export function formatPercent(value: number) {
   return `${Math.round(value)}%`
 }
+
+export function googleVoiceUrl(phone: string) {
+  const digits = phone.replace(/\D/g, "").replace(/^1/, "")
+  return `https://voice.google.com/u/0/calls?a=nc,%2B1${digits}`
+}
