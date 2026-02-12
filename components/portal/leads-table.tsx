@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Select,
   SelectContent,
@@ -74,7 +73,7 @@ export function LeadsTable({ clientId }: LeadsTableProps) {
   const search = searchParams.get("search") || ""
   const page = searchParams.get("page") || "1"
 
-  const { data, isLoading } = useSWR(
+  const { data } = useSWR(
     ["leads", clientId, status, search, page],
     fetchLeads,
     { revalidateOnFocus: false, shouldRetryOnError: false }
@@ -168,23 +167,14 @@ export function LeadsTable({ clientId }: LeadsTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell colSpan={7}>
-                    <Skeleton className="h-8 w-full" />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : !data?.leads.length ? (
+            {!data?.leads.length ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-32 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <Users className="size-8" />
                     <p className="font-medium">No leads yet</p>
                     <p className="max-w-sm text-sm">
-                      Once your ads start running, new leads will show up here
-                      automatically. You&apos;ll be able to filter, search, and export them.
+                      When your first leads come in, they&apos;ll appear here.
                     </p>
                   </div>
                 </TableCell>

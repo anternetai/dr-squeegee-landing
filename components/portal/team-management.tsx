@@ -1,7 +1,7 @@
 "use client"
 
 import { use, useState, useEffect } from "react"
-import { Users, UserPlus, Trash2, Loader2 } from "lucide-react"
+import { Users, UserPlus, Trash2, Pencil, Loader2 } from "lucide-react"
 import { PortalAuthContext } from "./portal-auth-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -34,7 +34,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import type { TeamMember } from "@/lib/portal/types"
+import { TEAM_ROLE_CONFIG } from "@/lib/portal/constants"
+import type { TeamMember, TeamMemberRole } from "@/lib/portal/types"
 
 export function TeamManagement() {
   const { user, teamMember } = use(PortalAuthContext)
@@ -42,6 +43,7 @@ export function TeamManagement() {
   const [loading, setLoading] = useState(true)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteFirstName, setInviteFirstName] = useState("")
@@ -49,7 +51,6 @@ export function TeamManagement() {
   const [inviteRole, setInviteRole] = useState("viewer")
   const [error, setError] = useState<string | null>(null)
 
-  // Only primary clients can manage team (not team members themselves)
   const isPrimary = user && !teamMember
 
   useEffect(() => {
@@ -103,6 +104,20 @@ export function TeamManagement() {
     }
   }
 
+  async function handleRoleUpdate(memberId: string, role: string) {
+    const res = await fetch(`/api/portal/team/${memberId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role }),
+    })
+    if (res.ok) {
+      setMembers((prev) =>
+        prev.map((m) => m.id === memberId ? { ...m, role: role as TeamMemberRole } : m)
+      )
+    }
+    setEditingId(null)
+  }
+
   async function handleDelete() {
     if (!deleteId) return
     setSaving(true)
@@ -117,7 +132,6 @@ export function TeamManagement() {
     }
   }
 
-  // Don't show team management for team members
   if (!isPrimary) return null
 
   return (
@@ -180,8 +194,12 @@ export function TeamManagement() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="viewer">Viewer -- read-only access</SelectItem>
-                      <SelectItem value="manager">Manager -- can update appointments</SelectItem>
+                      {Object.entries(TEAM_ROLE_CONFIG).map(([value, config]) => (
+                        <SelectItem key={value} value={value}>
+                          <span className="font-medium">{config.label}</span>
+                          <span className="ml-1.5 text-muted-foreground">&mdash; {config.description}</span>
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -232,22 +250,50 @@ export function TeamManagement() {
                     <p className="text-sm font-medium truncate">
                       {[member.first_name, member.last_name].filter(Boolean).join(" ") || member.email}
                     </p>
-                    <Badge variant="secondary" className="text-xs capitalize">
-                      {member.role}
-                    </Badge>
+                    {editingId === member.id ? (
+                      <Select
+                        value={member.role}
+                        onValueChange={(role) => handleRoleUpdate(member.id, role)}
+                      >
+                        <SelectTrigger className="h-7 w-[130px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(TEAM_ROLE_CONFIG).map(([value, config]) => (
+                            <SelectItem key={value} value={value}>
+                              {config.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs capitalize">
+                        {TEAM_ROLE_CONFIG[member.role as TeamMemberRole]?.label ?? member.role}
+                      </Badge>
+                    )}
                   </div>
                   {(member.first_name || member.last_name) && (
                     <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
-                  onClick={() => setDeleteId(member.id)}
-                >
-                  <Trash2 className="size-3.5" />
-                </Button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => setEditingId(editingId === member.id ? null : member.id)}
+                  >
+                    <Pencil className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => setDeleteId(member.id)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

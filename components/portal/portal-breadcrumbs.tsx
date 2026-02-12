@@ -6,6 +6,7 @@ import { ChevronRight } from "lucide-react"
 
 const ROUTE_LABELS: Record<string, string> = {
   "": "Dashboard",
+  dashboard: "Dashboard",
   leads: "Leads",
   conversations: "Conversations",
   appointments: "Appointments",

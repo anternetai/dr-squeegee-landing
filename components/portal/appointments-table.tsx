@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,7 +77,7 @@ export function AppointmentsTable({ clientId }: AppointmentsTableProps) {
   const searchParams = useSearchParams()
   const tab = searchParams.get("tab") || "upcoming"
 
-  const { data: appointments, isLoading, mutate } = useSWR(
+  const { data: appointments, mutate } = useSWR(
     ["appointments", clientId, tab],
     fetchAppointments,
     { revalidateOnFocus: false, shouldRetryOnError: false }
@@ -190,23 +189,14 @@ export function AppointmentsTable({ clientId }: AppointmentsTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell colSpan={4}>
-                    <Skeleton className="h-8 w-full" />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : !appointments?.length ? (
+            {!appointments?.length ? (
               <TableRow>
                 <TableCell colSpan={4} className="h-32 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <CalendarCheck className="size-8" />
                     <p className="font-medium">No {tab} appointments</p>
                     <p className="max-w-sm text-sm">
-                      When leads are qualified and booked, they&apos;ll appear here
-                      with options to mark attendance and track outcomes.
+                      When your first appointment is booked, it&apos;ll appear here.
                     </p>
                   </div>
                 </TableCell>

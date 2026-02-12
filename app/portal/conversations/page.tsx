@@ -1,11 +1,10 @@
 "use client"
 
-import { use, Suspense } from "react"
+import { use } from "react"
 import { PortalAuthContext } from "@/components/portal/portal-auth-provider"
 import { ConversationList } from "@/components/portal/conversation-list"
-import { Skeleton } from "@/components/ui/skeleton"
 
-function ConversationsContent() {
+export default function ConversationsPage() {
   const { user } = use(PortalAuthContext)
   if (!user) return null
 
@@ -19,13 +18,5 @@ function ConversationsContent() {
       </div>
       <ConversationList clientId={user.id} />
     </div>
-  )
-}
-
-export default function ConversationsPage() {
-  return (
-    <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-      <ConversationsContent />
-    </Suspense>
   )
 }

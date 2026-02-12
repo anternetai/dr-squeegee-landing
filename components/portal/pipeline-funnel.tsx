@@ -73,7 +73,7 @@ export function PipelineFunnel({ clientId, from, to }: PipelineFunnelProps) {
                   style={{ touchAction: "manipulation" }}
                 >
                   <div
-                    className="w-full rounded-sm bg-primary/20 transition-all group-hover:bg-primary/30"
+                    className="w-full rounded-sm bg-orange-100 transition-all group-hover:bg-orange-200 dark:bg-orange-900/30 dark:group-hover:bg-orange-800/40"
                     style={{ height: `${heightPercent}%`, minHeight: "0.5rem" }}
                   />
                   <span className="text-xs font-medium text-muted-foreground">

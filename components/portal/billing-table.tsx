@@ -18,7 +18,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent } from "@/components/ui/card"
 import { StatusBadge } from "./status-badge"
 import { formatDate, formatCurrency } from "@/lib/portal/format"
@@ -40,7 +39,7 @@ async function fetchPayments([, clientId]: [string, string]) {
 }
 
 export function BillingTable({ clientId }: BillingTableProps) {
-  const { data: payments, isLoading } = useSWR(
+  const { data: payments } = useSWR(
     ["payments", clientId],
     fetchPayments,
     { revalidateOnFocus: false, shouldRetryOnError: false }
@@ -105,23 +104,14 @@ export function BillingTable({ clientId }: BillingTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell colSpan={4}>
-                    <Skeleton className="h-8 w-full" />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : !payments?.length ? (
+            {!payments?.length ? (
               <TableRow>
                 <TableCell colSpan={4} className="h-32 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <CreditCard className="size-8" />
                     <p className="font-medium">No charges yet</p>
                     <p className="max-w-sm text-sm">
-                      You&apos;re only charged $200 when an appointment shows up &mdash; no
-                      surprises. Charges will appear here as they happen.
+                      Your billing history will appear here.
                     </p>
                   </div>
                 </TableCell>

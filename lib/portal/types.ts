@@ -184,7 +184,7 @@ export interface CrmProspect {
   created_at: string
 }
 
-export type TeamMemberRole = "viewer" | "manager"
+export type TeamMemberRole = "viewer" | "manager" | "contractor" | "inspector"
 
 export interface TeamMember {
   id: string

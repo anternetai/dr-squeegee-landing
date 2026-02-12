@@ -1,11 +1,10 @@
 "use client"
 
-import { use, Suspense } from "react"
+import { use } from "react"
 import { PortalAuthContext } from "@/components/portal/portal-auth-provider"
 import { BillingTable } from "@/components/portal/billing-table"
-import { Skeleton } from "@/components/ui/skeleton"
 
-function BillingContent() {
+export default function BillingPage() {
   const { user } = use(PortalAuthContext)
   if (!user) return null
 
@@ -19,13 +18,5 @@ function BillingContent() {
       </div>
       <BillingTable clientId={user.id} />
     </div>
-  )
-}
-
-export default function BillingPage() {
-  return (
-    <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-      <BillingContent />
-    </Suspense>
   )
 }

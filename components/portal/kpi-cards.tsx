@@ -172,7 +172,7 @@ export function KpiCards({ clientId, from, to }: KpiCardsProps) {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {card.title}
               </CardTitle>
-              <card.icon className="size-4 text-muted-foreground" />
+              <card.icon className="size-4 text-orange-500" />
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>
@@ -220,12 +220,13 @@ export function KpiCards({ clientId, from, to }: KpiCardsProps) {
                   axisLine={false}
                 />
                 <RechartsTooltip
+                  cursor={{ stroke: "var(--color-chart-1)", strokeWidth: 1, strokeDasharray: "4 4" }}
                   content={({ active, payload, label }) => {
                     if (!active || !payload?.length) return null
                     return (
                       <div className="rounded-lg border bg-background px-3 py-2 shadow-sm">
                         <p className="text-xs text-muted-foreground">{label}</p>
-                        <p className="text-sm font-semibold" style={{ fontVariantNumeric: "tabular-nums" }}>
+                        <p className="text-sm font-semibold text-orange-600 dark:text-orange-400" style={{ fontVariantNumeric: "tabular-nums" }}>
                           {payload[0].value} appointment{payload[0].value === 1 ? "" : "s"}
                         </p>
                       </div>

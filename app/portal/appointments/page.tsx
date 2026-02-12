@@ -1,11 +1,10 @@
 "use client"
 
-import { use, Suspense } from "react"
+import { use } from "react"
 import { PortalAuthContext } from "@/components/portal/portal-auth-provider"
 import { AppointmentsTable } from "@/components/portal/appointments-table"
-import { Skeleton } from "@/components/ui/skeleton"
 
-function AppointmentsContent() {
+export default function AppointmentsPage() {
   const { user } = use(PortalAuthContext)
   if (!user) return null
 
@@ -19,13 +18,5 @@ function AppointmentsContent() {
       </div>
       <AppointmentsTable clientId={user.id} />
     </div>
-  )
-}
-
-export default function AppointmentsPage() {
-  return (
-    <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-      <AppointmentsContent />
-    </Suspense>
   )
 }

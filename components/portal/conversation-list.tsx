@@ -74,7 +74,7 @@ export function ConversationList({ clientId }: ConversationListProps) {
   const isMobile = useIsMobile()
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
 
-  const { data: threads, isLoading } = useSWR(
+  const { data: threads } = useSWR(
     ["threads", clientId],
     fetchThreads,
     { revalidateOnFocus: false, shouldRetryOnError: false }
@@ -82,24 +82,13 @@ export function ConversationList({ clientId }: ConversationListProps) {
 
   const selected = threads?.find((t) => t.lead_id === selectedLeadId)
 
-  if (isLoading) {
-    return (
-      <div className="space-y-2">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-16 w-full" />
-        ))}
-      </div>
-    )
-  }
-
   if (!threads?.length) {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-2 text-center text-muted-foreground">
         <MessageSquare className="size-8" />
         <p className="font-medium">No conversations yet</p>
         <p className="max-w-sm text-sm">
-          Once your first lead comes in, you&apos;ll see the full text thread
-          right here &mdash; every message between your leads and our AI assistant.
+          When your first conversation starts, it&apos;ll appear here.
         </p>
       </div>
     )

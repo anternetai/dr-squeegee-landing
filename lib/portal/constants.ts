@@ -1,4 +1,4 @@
-import type { LeadStatus, AppointmentStatus, PaymentStatus, ClientPipelineStage } from "./types"
+import type { LeadStatus, AppointmentStatus, PaymentStatus, ClientPipelineStage, TeamMemberRole } from "./types"
 
 export const LEAD_STATUS_CONFIG: Record<
   LeadStatus,
@@ -105,6 +105,32 @@ export const PIPELINE_STAGE_TASKS: Record<ClientPipelineStage, string[]> = {
     "Launch ads",
   ],
   active: ["Monitor ad performance", "Weekly check-in"],
+}
+
+export const TEAM_ROLE_CONFIG: Record<
+  TeamMemberRole,
+  { label: string; description: string; allowedRoutes: string[] }
+> = {
+  manager: {
+    label: "Manager",
+    description: "Full access to all portal features",
+    allowedRoutes: ["/portal/dashboard", "/portal/leads", "/portal/conversations", "/portal/appointments", "/portal/billing"],
+  },
+  viewer: {
+    label: "Viewer",
+    description: "Read-only access to dashboard and leads",
+    allowedRoutes: ["/portal/dashboard", "/portal/leads"],
+  },
+  contractor: {
+    label: "Contractor",
+    description: "Access to assigned appointments and job details",
+    allowedRoutes: ["/portal/dashboard", "/portal/appointments"],
+  },
+  inspector: {
+    label: "Inspector",
+    description: "Access to inspection requests and lead details",
+    allowedRoutes: ["/portal/dashboard", "/portal/leads", "/portal/appointments"],
+  },
 }
 
 export const CALL_OUTCOME_CONFIG: Record<string, { label: string; color: string }> = {

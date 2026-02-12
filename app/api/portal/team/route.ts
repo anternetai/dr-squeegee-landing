@@ -72,7 +72,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 })
     }
 
-    const memberRole = role === "manager" ? "manager" : "viewer"
+    const validRoles = ["viewer", "manager", "contractor", "inspector"]
+    const memberRole = validRoles.includes(role) ? role : "viewer"
 
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     const resendApiKey = process.env.RESEND_API_KEY

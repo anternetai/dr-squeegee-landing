@@ -27,6 +27,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { UserMenu } from "./user-menu"
+import { TEAM_ROLE_CONFIG } from "@/lib/portal/constants"
+import type { TeamMemberRole } from "@/lib/portal/types"
 
 const navItems = [
   { label: "Dashboard", href: "/portal/dashboard", icon: LayoutDashboard },
@@ -54,9 +56,15 @@ export function SidebarNav({ user }: SidebarNavProps) {
   const { setOpenMobile } = useSidebar()
 
   function handleNavClick() {
-    // Close sidebar on mobile after clicking a link
     setOpenMobile(false)
   }
+
+  const filteredNavItems = (() => {
+    if (user.role === "client" || user.role === "admin") return navItems
+    const config = TEAM_ROLE_CONFIG[user.role as TeamMemberRole]
+    if (!config) return navItems
+    return navItems.filter((item) => config.allowedRoutes.includes(item.href))
+  })()
 
   return (
     <Sidebar>
@@ -71,7 +79,7 @@ export function SidebarNav({ user }: SidebarNavProps) {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {filteredNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild
@@ -79,7 +87,7 @@ export function SidebarNav({ user }: SidebarNavProps) {
                     tooltip={item.label}
                   >
                     <Link href={item.href} onClick={handleNavClick}>
-                      <item.icon className="size-4" />
+                      <item.icon className={pathname === item.href ? "size-4 text-orange-500" : "size-4"} />
                       <span>{item.label}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -101,7 +109,7 @@ export function SidebarNav({ user }: SidebarNavProps) {
                       tooltip={item.label}
                     >
                       <Link href={item.href} onClick={handleNavClick}>
-                        <item.icon className="size-4" />
+                        <item.icon className={pathname === item.href ? "size-4 text-orange-500" : "size-4"} />
                         <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>

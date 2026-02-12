@@ -1,11 +1,10 @@
 "use client"
 
-import { use, Suspense } from "react"
+import { use } from "react"
 import { PortalAuthContext } from "@/components/portal/portal-auth-provider"
 import { LeadsTable } from "@/components/portal/leads-table"
-import { Skeleton } from "@/components/ui/skeleton"
 
-function LeadsContent() {
+export default function LeadsPage() {
   const { user } = use(PortalAuthContext)
   if (!user) return null
 
@@ -19,13 +18,5 @@ function LeadsContent() {
       </div>
       <LeadsTable clientId={user.id} />
     </div>
-  )
-}
-
-export default function LeadsPage() {
-  return (
-    <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-      <LeadsContent />
-    </Suspense>
   )
 }
