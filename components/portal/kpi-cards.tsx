@@ -13,7 +13,6 @@ import {
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
 import { createClient } from "@/lib/supabase/client"
 import { formatCurrency, formatPercent } from "@/lib/portal/format"
 import type { KpiData } from "@/lib/portal/types"
@@ -118,13 +117,13 @@ async function fetchChartData([, clientId, from, to]: [string, string, string, s
 }
 
 export function KpiCards({ clientId, from, to }: KpiCardsProps) {
-  const { data, isLoading, mutate } = useSWR(
+  const { data, mutate } = useSWR(
     ["kpis", clientId, from, to],
     fetchKpis,
     { revalidateOnFocus: false, shouldRetryOnError: false }
   )
 
-  const { data: chartData, isLoading: chartLoading } = useSWR(
+  const { data: chartData } = useSWR(
     ["chart", clientId, from, to],
     fetchChartData,
     { revalidateOnFocus: false, shouldRetryOnError: false }
@@ -133,22 +132,22 @@ export function KpiCards({ clientId, from, to }: KpiCardsProps) {
   const cards = [
     {
       title: "Total Leads",
-      value: data ? String(data.total_leads) : isLoading ? null : "0",
+      value: String(data?.total_leads ?? 0),
       icon: Users,
     },
     {
       title: "Appointments Booked",
-      value: data ? String(data.appointments_booked) : isLoading ? null : "0",
+      value: String(data?.appointments_booked ?? 0),
       icon: CalendarCheck,
     },
     {
       title: "Show Rate",
-      value: data ? formatPercent(data.show_rate) : isLoading ? null : "0%",
+      value: formatPercent(data?.show_rate ?? 0),
       icon: TrendingUp,
     },
     {
       title: "Total Charged",
-      value: data ? formatCurrency(data.total_charged) : isLoading ? null : "$0",
+      value: formatCurrency(data?.total_charged ?? 0),
       icon: DollarSign,
     },
   ]
@@ -176,13 +175,9 @@ export function KpiCards({ clientId, from, to }: KpiCardsProps) {
               <card.icon className="size-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {isLoading || card.value === null ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <p className="text-2xl font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>
-                  {card.value}
-                </p>
-              )}
+              <p className="text-2xl font-bold" style={{ fontVariantNumeric: "tabular-nums" }}>
+                {card.value}
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -195,15 +190,13 @@ export function KpiCards({ clientId, from, to }: KpiCardsProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {chartLoading ? (
-            <Skeleton className="h-[240px] w-full" />
-          ) : !chartData?.length ? (
+          {!chartData?.length ? (
             <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
               Appointment data will appear here as leads get booked.
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={chartData ?? []} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorAppt" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--color-chart-1)" stopOpacity={0.3} />

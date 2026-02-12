@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import { createClient } from "@/lib/supabase/client"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import {
   Tooltip,
@@ -44,36 +43,25 @@ async function fetchPipeline([, clientId, from, to]: [string, string, string, st
 
 export function PipelineFunnel({ clientId, from, to }: PipelineFunnelProps) {
   const router = useRouter()
-  const { data: stages, isLoading } = useSWR(
+  const { data: stages } = useSWR(
     ["pipeline", clientId, from, to],
     fetchPipeline,
     { revalidateOnFocus: false, shouldRetryOnError: false }
   )
 
-  if (isLoading) {
-    return (
-      <div className="flex gap-2">
-        {PIPELINE_STAGES.map((s) => (
-          <Skeleton key={s} className="h-16 flex-1" />
-        ))}
-      </div>
-    )
-  }
+  // Build display stages — use fetched data or default to 0 counts
+  const displayStages = stages ?? PIPELINE_STAGES.map((status) => ({
+    status,
+    label: LEAD_STATUS_CONFIG[status].label,
+    count: 0,
+  }))
 
-  if (!stages?.length) {
-    return (
-      <div className="flex h-20 items-center justify-center rounded-lg border text-sm text-muted-foreground">
-        Your lead pipeline will populate here as leads come in.
-      </div>
-    )
-  }
-
-  const maxCount = Math.max(...stages.map((s) => s.count), 1)
+  const maxCount = Math.max(...displayStages.map((s) => s.count), 1)
 
   return (
     <TooltipProvider>
       <div className="flex flex-wrap gap-2">
-        {(stages ?? []).map((stage) => {
+        {displayStages.map((stage) => {
           const config = LEAD_STATUS_CONFIG[stage.status]
           const heightPercent = Math.max((stage.count / maxCount) * 100, 20)
           return (
