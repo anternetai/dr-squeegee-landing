@@ -133,22 +133,22 @@ export function KpiCards({ clientId, from, to }: KpiCardsProps) {
   const cards = [
     {
       title: "Total Leads",
-      value: data ? String(data.total_leads) : null,
+      value: data ? String(data.total_leads) : isLoading ? null : "0",
       icon: Users,
     },
     {
       title: "Appointments Booked",
-      value: data ? String(data.appointments_booked) : null,
+      value: data ? String(data.appointments_booked) : isLoading ? null : "0",
       icon: CalendarCheck,
     },
     {
       title: "Show Rate",
-      value: data ? formatPercent(data.show_rate) : null,
+      value: data ? formatPercent(data.show_rate) : isLoading ? null : "0%",
       icon: TrendingUp,
     },
     {
       title: "Total Charged",
-      value: data ? formatCurrency(data.total_charged) : null,
+      value: data ? formatCurrency(data.total_charged) : isLoading ? null : "$0",
       icon: DollarSign,
     },
   ]
@@ -197,6 +197,10 @@ export function KpiCards({ clientId, from, to }: KpiCardsProps) {
         <CardContent>
           {chartLoading ? (
             <Skeleton className="h-[240px] w-full" />
+          ) : !chartData?.length ? (
+            <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
+              Appointment data will appear here as leads get booked.
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <AreaChart data={chartData ?? []} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>

@@ -60,7 +60,15 @@ export function PipelineFunnel({ clientId, from, to }: PipelineFunnelProps) {
     )
   }
 
-  const maxCount = Math.max(...(stages ?? []).map((s) => s.count), 1)
+  if (!stages?.length) {
+    return (
+      <div className="flex h-20 items-center justify-center rounded-lg border text-sm text-muted-foreground">
+        Your lead pipeline will populate here as leads come in.
+      </div>
+    )
+  }
+
+  const maxCount = Math.max(...stages.map((s) => s.count), 1)
 
   return (
     <TooltipProvider>
