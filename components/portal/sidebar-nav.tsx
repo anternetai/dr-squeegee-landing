@@ -42,7 +42,7 @@ const navItems = [
 const adminItems = [
   { label: "Admin", href: "/portal/admin", icon: Shield },
   { label: "Prospects", href: "/portal/admin/prospects", icon: UserPlus },
-  { label: "Cold Calls", href: "/portal/calls", icon: Phone },
+  { label: "Cold Calls", href: "/portal/admin/calls", icon: Phone },
 ]
 
 interface SidebarNavProps {
