@@ -3,12 +3,15 @@
 import { use, Suspense, useCallback } from "react"
 import { redirect } from "next/navigation"
 import useSWR from "swr"
-import { Phone, Zap, BarChart3, History } from "lucide-react"
+import { Phone, Zap, BarChart3, History, PhoneCall, PieChart } from "lucide-react"
 import { PortalAuthContext } from "@/components/portal/portal-auth-provider"
 import { CallDashboard } from "@/components/portal/calls/call-dashboard"
 import { QuickLog } from "@/components/portal/calls/quick-log"
 import { CallHistory } from "@/components/portal/calls/call-history"
 import { DailyLogDialog } from "@/components/portal/calls/daily-log-dialog"
+import { PowerDialer } from "@/components/portal/dialer/power-dialer"
+import { DialerStats } from "@/components/portal/dialer/dialer-stats"
+import { CSVImport } from "@/components/portal/dialer/csv-import"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { CallDashboardData } from "@/app/api/portal/calls/dashboard/route"
@@ -87,17 +90,28 @@ function CallsContent() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Cold Call Tracker</h1>
+          <h1 className="text-2xl font-bold">Power Dialer</h1>
           <p className="text-sm text-muted-foreground">
-            Track your daily dials, contacts, and demos booked
+            Call queue, lead management, and analytics
           </p>
         </div>
-        <DailyLogDialog onSubmit={handleDailyLog} />
+        <div className="flex items-center gap-2">
+          <CSVImport onImportComplete={() => mutate()} />
+          <DailyLogDialog onSubmit={handleDailyLog} />
+        </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="dashboard">
+      {/* Tabs — Dialer is first/default */}
+      <Tabs defaultValue="dialer">
         <TabsList>
+          <TabsTrigger value="dialer" className="gap-1.5">
+            <PhoneCall className="size-3.5" />
+            <span className="hidden sm:inline">Dialer</span>
+          </TabsTrigger>
+          <TabsTrigger value="dialer-stats" className="gap-1.5">
+            <PieChart className="size-3.5" />
+            <span className="hidden sm:inline">Pipeline</span>
+          </TabsTrigger>
           <TabsTrigger value="dashboard" className="gap-1.5">
             <BarChart3 className="size-3.5" />
             <span className="hidden sm:inline">Dashboard</span>
@@ -111,6 +125,14 @@ function CallsContent() {
             <span className="hidden sm:inline">History</span>
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="dialer">
+          <PowerDialer />
+        </TabsContent>
+
+        <TabsContent value="dialer-stats">
+          <DialerStats />
+        </TabsContent>
 
         <TabsContent value="dashboard">
           <CallDashboard data={data} isLoading={isLoading} />
@@ -154,16 +176,14 @@ function CallsSkeleton() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-9 w-32" />
+        <div className="flex gap-2">
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="h-9 w-32" />
+        </div>
       </div>
-      <Skeleton className="h-10 w-72" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-24" />
-        ))}
-      </div>
-      <Skeleton className="h-40" />
-      <Skeleton className="h-64" />
+      <Skeleton className="h-10 w-96" />
+      <Skeleton className="h-32" />
+      <Skeleton className="h-96" />
     </div>
   )
 }
