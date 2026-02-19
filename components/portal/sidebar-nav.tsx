@@ -12,6 +12,8 @@ import {
   Shield,
   UserPlus,
   Phone,
+  PhoneCall,
+  Headphones,
 } from "lucide-react"
 import {
   Sidebar,
@@ -42,7 +44,9 @@ const navItems = [
 const adminItems = [
   { label: "Admin", href: "/portal/admin", icon: Shield },
   { label: "Prospects", href: "/portal/admin/prospects", icon: UserPlus },
-  { label: "Cold Calls", href: "/portal/admin/calls", icon: Phone },
+  { label: "Cold Calls", href: "/portal/cold-calls", icon: PhoneCall },
+  { label: "Power Dialer", href: "/portal/admin/calls", icon: Phone },
+  { label: "Call Logs", href: "/portal/calls", icon: Headphones },
 ]
 
 interface SidebarNavProps {
