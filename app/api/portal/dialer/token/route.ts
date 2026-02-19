@@ -49,9 +49,9 @@ export async function GET() {
       // Auto-create a TwiML app
       const client = twilio.default(accountSid, authToken)
       const app = await client.applications.create({
-        friendlyName: "Anternet Power Dialer",
+        friendlyName: "HomeField Hub Power Dialer",
         voiceMethod: "POST",
-        voiceUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://anternet.io"}/api/portal/dialer/twiml`,
+        voiceUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://homefieldhub.com"}/api/portal/dialer/twiml`,
       })
       appSid = app.sid
       // Note: User should set TWILIO_TWIML_APP_SID env var to this value
