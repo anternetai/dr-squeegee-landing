@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { DialerLead } from "@/lib/dialer/types"
-import { useTelnyxCall } from "@/lib/dialer/use-telnyx-call"
+import { useTelnyxWebRTC } from "@/lib/dialer/use-telnyx-webrtc"
 import { CallTimer } from "./call-timer"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -124,12 +124,19 @@ export function PowerDialer({
   const {
     callState,
     callDuration,
-    callControlId,
     isReady,
-    telnyxError,
-    makeCall,
+    error: telnyxError,
+    makeCall: webrtcMakeCall,
     hangUp,
-  } = useTelnyxCall()
+    toggleMute,
+    isMuted,
+  } = useTelnyxWebRTC()
+
+  // Wrap makeCall to match expected signature (WebRTC doesn't need leadId)
+  const makeCall = useCallback(
+    (phoneNumber: string, _leadId?: string) => webrtcMakeCall(phoneNumber),
+    [webrtcMakeCall]
+  )
 
   // ─── Sync external autoDialActive prop ──────────────────────────────────
 
@@ -194,9 +201,9 @@ export function PowerDialer({
 
   useEffect(() => {
     if (callState === "disconnected") {
-      onCallComplete?.(callControlId)
+      onCallComplete?.(null)
     }
-  }, [callState, callControlId, onCallComplete])
+  }, [callState, onCallComplete])
 
   // ─── Actions ─────────────────────────────────────────────────────────────
 
