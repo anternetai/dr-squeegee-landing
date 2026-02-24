@@ -14,6 +14,7 @@ import {
   Phone,
   PhoneCall,
   Headphones,
+  Cpu,
 } from "lucide-react"
 import {
   Sidebar,
@@ -47,6 +48,7 @@ const adminItems = [
   { label: "Cold Calls", href: "/portal/cold-calls", icon: PhoneCall },
   { label: "Power Dialer", href: "/portal/admin/calls", icon: Phone },
   { label: "Call Logs", href: "/portal/calls", icon: Headphones },
+  { label: "Control Panel", href: "/portal/admin/control", icon: Cpu },
 ]
 
 interface SidebarNavProps {
