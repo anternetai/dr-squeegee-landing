@@ -73,9 +73,11 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     async function init() {
       try {
         // Fetch JWT token from our API
+        console.log("[Telnyx] Fetching WebRTC token...")
         const res = await fetch("/api/portal/dialer/webrtc-token")
         if (!res.ok) {
           const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+          console.error("[Telnyx] Token fetch failed:", data)
           setError(data.error || "Failed to get WebRTC token")
           return
         }
@@ -86,10 +88,12 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
           return
         }
 
+        console.log("[Telnyx] Token received, callerIdNumber:", callerIdNumber)
         callerIdRef.current = callerIdNumber || null
 
         // Dynamically import to avoid SSR issues
         const { TelnyxRTC } = await import("@telnyx/webrtc")
+        console.log("[Telnyx] SDK loaded, creating client...")
 
         const client = new TelnyxRTC({
           login_token,
@@ -97,20 +101,35 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
 
         client.on("telnyx.ready", () => {
           if (mounted) {
-            console.log("[Telnyx] WebRTC client ready")
+            console.log("[Telnyx] ✅ WebRTC client READY — can make calls")
             setIsReady(true)
             setError(null)
           }
         })
 
         client.on("telnyx.error", (err: any) => {
-          console.error("[Telnyx] WebRTC error:", err)
+          console.error("[Telnyx] ❌ WebRTC error:", JSON.stringify(err, null, 2))
           if (mounted) {
             setError(err?.message || "WebRTC connection error")
           }
         })
 
+        client.on("telnyx.socket.open", () => {
+          console.log("[Telnyx] 🔌 WebSocket opened")
+        })
+
+        client.on("telnyx.socket.close", (ev: any) => {
+          console.log("[Telnyx] 🔌 WebSocket closed:", ev?.code, ev?.reason)
+        })
+
+        client.on("telnyx.socket.error", (ev: any) => {
+          console.error("[Telnyx] 🔌 WebSocket error:", ev)
+        })
+
         client.on("telnyx.notification", (notification: any) => {
+          console.log("[Telnyx] 📡 Notification:", notification.type, 
+            notification.call ? `state=${notification.call.state}` : "(no call)")
+
           const call = notification.call
 
           if (!call) return
@@ -120,11 +139,13 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
               handleCallState(call)
               break
             case "userMediaError":
+              console.error("[Telnyx] 🎤 Microphone access denied")
               if (mounted) setError("Microphone access denied. Please allow mic access.")
               break
           }
         })
 
+        console.log("[Telnyx] Connecting to Telnyx servers...")
         client.connect()
         clientRef.current = client
       } catch (e) {
@@ -140,13 +161,25 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
       if (!mounted) return
       
       const state = call.state
+      console.log(`[Telnyx] 📞 Call state: ${state}`, {
+        cause: call.cause,
+        causeCode: call.causeCode,
+        sipCode: call.sipCode,
+        sipReason: call.sipReason,
+        direction: call.direction,
+        id: call.id,
+      })
 
       // Attach remote audio stream
       if (call.remoteStream && audioRef.current) {
         audioRef.current.srcObject = call.remoteStream
+        console.log("[Telnyx] 🔊 Remote audio stream attached")
       }
 
       switch (state) {
+        case "new":
+          console.log("[Telnyx] New call created")
+          break
         case "trying":
         case "requesting":
           setCallState("connecting")
@@ -162,6 +195,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
         case "hangup":
         case "destroy":
         case "purge":
+          console.log(`[Telnyx] ☎️ Call ended: state=${state}, cause=${call.cause}, causeCode=${call.causeCode}, sipCode=${call.sipCode}, sipReason=${call.sipReason}`)
           setCallState("disconnected")
           stopTimer()
           callRef.current = null
@@ -170,6 +204,8 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
             if (mounted) setCallState("idle")
           }, 3000)
           break
+        default:
+          console.log(`[Telnyx] Unhandled call state: ${state}`)
       }
     }
 
@@ -189,6 +225,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
 
   const makeCall = useCallback((phoneNumber: string) => {
     if (!clientRef.current || !isReady) {
+      console.error("[Telnyx] makeCall failed: client exists?", !!clientRef.current, "isReady?", isReady)
       setError("WebRTC not ready — try refreshing the page")
       return
     }
@@ -204,6 +241,8 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     else if (formatted.length === 11 && formatted.startsWith("1")) formatted = `+${formatted}`
     else if (!formatted.startsWith("+")) formatted = `+${formatted}`
 
+    console.log("[Telnyx] 📞 Making call to:", formatted, "from:", callerIdRef.current)
+
     try {
       const call = clientRef.current.newCall({
         destinationNumber: formatted,
@@ -212,6 +251,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
         video: false,
       })
       callRef.current = call
+      console.log("[Telnyx] Call object created:", call?.id)
     } catch (e) {
       console.error("[Telnyx] Failed to make call:", e)
       setError(e instanceof Error ? e.message : "Failed to initiate call")
