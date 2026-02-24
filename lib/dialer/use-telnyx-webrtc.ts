@@ -33,6 +33,15 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
   const callStartRef = useRef<number>(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const callerIdRef = useRef<string | null>(null)
+  const mountedRef = useRef(true)
+
+  // Kill the audio element — stops all sound immediately
+  const killAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.srcObject = null
+    }
+  }, [])
 
   // Create a hidden audio element for remote audio
   useEffect(() => {
@@ -45,6 +54,8 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     }
     return () => {
       if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.srcObject = null
         audioRef.current.remove()
         audioRef.current = null
       }
@@ -68,11 +79,10 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
 
   // Initialize Telnyx WebRTC client
   useEffect(() => {
-    let mounted = true
+    mountedRef.current = true
 
     async function init() {
       try {
-        // Fetch JWT token from our API
         console.log("[Telnyx] Fetching WebRTC token...")
         const res = await fetch("/api/portal/dialer/webrtc-token")
         if (!res.ok) {
@@ -91,95 +101,65 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
         console.log("[Telnyx] Token received, callerIdNumber:", callerIdNumber)
         callerIdRef.current = callerIdNumber || null
 
-        // Dynamically import to avoid SSR issues
         const { TelnyxRTC } = await import("@telnyx/webrtc")
         console.log("[Telnyx] SDK loaded, creating client...")
 
-        const client = new TelnyxRTC({
-          login_token,
-        })
+        const client = new TelnyxRTC({ login_token })
 
         client.on("telnyx.ready", () => {
-          if (mounted) {
-            console.log("[Telnyx] ✅ WebRTC client READY — can make calls")
+          if (mountedRef.current) {
+            console.log("[Telnyx] ✅ WebRTC client READY")
             setIsReady(true)
             setError(null)
           }
         })
 
         client.on("telnyx.error", (err: any) => {
-          console.error("[Telnyx] ❌ WebRTC error:", JSON.stringify(err, null, 2))
-          if (mounted) {
+          console.error("[Telnyx] ❌ WebRTC error:", err)
+          if (mountedRef.current) {
             setError(err?.message || "WebRTC connection error")
           }
         })
 
-        client.on("telnyx.socket.open", () => {
-          console.log("[Telnyx] 🔌 WebSocket opened")
-        })
-
-        client.on("telnyx.socket.close", (ev: any) => {
-          console.log("[Telnyx] 🔌 WebSocket closed:", ev?.code, ev?.reason)
-        })
-
-        client.on("telnyx.socket.error", (ev: any) => {
-          console.error("[Telnyx] 🔌 WebSocket error:", ev)
-        })
-
         client.on("telnyx.notification", (notification: any) => {
-          console.log("[Telnyx] 📡 Notification:", notification.type, 
-            notification.call ? `state=${notification.call.state}` : "(no call)")
-
           const call = notification.call
-
           if (!call) return
 
-          switch (notification.type) {
-            case "callUpdate":
-              handleCallState(call)
-              break
-            case "userMediaError":
-              console.error("[Telnyx] 🎤 Microphone access denied")
-              if (mounted) setError("Microphone access denied. Please allow mic access.")
-              break
+          if (notification.type === "callUpdate") {
+            handleCallState(call)
+          } else if (notification.type === "userMediaError") {
+            console.error("[Telnyx] 🎤 Microphone access denied")
+            if (mountedRef.current) setError("Microphone access denied. Please allow mic access.")
           }
         })
 
-        console.log("[Telnyx] Connecting to Telnyx servers...")
+        console.log("[Telnyx] Connecting...")
         client.connect()
         clientRef.current = client
       } catch (e) {
-        console.error("[Telnyx] WebRTC init error:", e)
-        if (mounted) {
-          const msg = e instanceof Error ? e.message : String(e)
-          setError(msg)
+        console.error("[Telnyx] Init error:", e)
+        if (mountedRef.current) {
+          setError(e instanceof Error ? e.message : String(e))
         }
       }
     }
 
     function handleCallState(call: any) {
-      if (!mounted) return
+      if (!mountedRef.current) return
       
       const state = call.state
       console.log(`[Telnyx] 📞 Call state: ${state}`, {
         cause: call.cause,
-        causeCode: call.causeCode,
         sipCode: call.sipCode,
         sipReason: call.sipReason,
-        direction: call.direction,
-        id: call.id,
       })
 
-      // Attach remote audio stream
+      // Attach remote audio stream when available
       if (call.remoteStream && audioRef.current) {
         audioRef.current.srcObject = call.remoteStream
-        console.log("[Telnyx] 🔊 Remote audio stream attached")
       }
 
       switch (state) {
-        case "new":
-          console.log("[Telnyx] New call created")
-          break
         case "trying":
         case "requesting":
           setCallState("connecting")
@@ -195,25 +175,22 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
         case "hangup":
         case "destroy":
         case "purge":
-          console.log(`[Telnyx] ☎️ Call ended: state=${state}, cause=${call.cause}, causeCode=${call.causeCode}, sipCode=${call.sipCode}, sipReason=${call.sipReason}`)
-          setCallState("disconnected")
+          console.log(`[Telnyx] ☎️ Call ended — cause=${call.cause}, sip=${call.sipCode}`)
+          // CRITICAL: kill audio immediately so user doesn't hear anything
+          killAudio()
           stopTimer()
           callRef.current = null
-          // Reset to idle after a brief delay so the UI can show "Call Ended"
-          setTimeout(() => {
-            if (mounted) setCallState("idle")
-          }, 3000)
+          setCallState("disconnected")
           break
-        default:
-          console.log(`[Telnyx] Unhandled call state: ${state}`)
       }
     }
 
     init()
 
     return () => {
-      mounted = false
+      mountedRef.current = false
       stopTimer()
+      killAudio()
       if (callRef.current) {
         try { callRef.current.hangup() } catch {}
       }
@@ -221,11 +198,10 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
         try { clientRef.current.disconnect() } catch {}
       }
     }
-  }, [startTimer, stopTimer])
+  }, [startTimer, stopTimer, killAudio])
 
   const makeCall = useCallback((phoneNumber: string) => {
     if (!clientRef.current || !isReady) {
-      console.error("[Telnyx] makeCall failed: client exists?", !!clientRef.current, "isReady?", isReady)
       setError("WebRTC not ready — try refreshing the page")
       return
     }
@@ -241,7 +217,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     else if (formatted.length === 11 && formatted.startsWith("1")) formatted = `+${formatted}`
     else if (!formatted.startsWith("+")) formatted = `+${formatted}`
 
-    console.log("[Telnyx] 📞 Making call to:", formatted, "from:", callerIdRef.current)
+    console.log("[Telnyx] 📞 Calling:", formatted)
 
     try {
       const call = clientRef.current.newCall({
@@ -251,26 +227,60 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
         video: false,
       })
       callRef.current = call
-      console.log("[Telnyx] Call object created:", call?.id)
     } catch (e) {
-      console.error("[Telnyx] Failed to make call:", e)
+      console.error("[Telnyx] Call failed:", e)
       setError(e instanceof Error ? e.message : "Failed to initiate call")
       setCallState("idle")
     }
   }, [isReady])
 
   const hangUp = useCallback(() => {
-    if (callRef.current) {
+    console.log("[Telnyx] 🔴 Hanging up...")
+    
+    // 1. Kill audio FIRST — stop all sound immediately
+    killAudio()
+    
+    // 2. Stop the timer
+    stopTimer()
+    
+    // 3. Tell the SDK to hang up the SIP session
+    const call = callRef.current
+    callRef.current = null
+    
+    if (call) {
       try {
-        callRef.current.hangup()
+        // The SDK hangup() sends a SIP BYE
+        call.hangup()
       } catch (e) {
         console.error("[Telnyx] Hangup error:", e)
       }
-      callRef.current = null
+      
+      // Also try to stop all media tracks on the call's peer connection
+      try {
+        if (call.peer?.instance) {
+          const pc = call.peer.instance as RTCPeerConnection
+          pc.getSenders().forEach((sender: RTCRtpSender) => {
+            if (sender.track) sender.track.stop()
+          })
+          pc.getReceivers().forEach((receiver: RTCRtpReceiver) => {
+            if (receiver.track) receiver.track.stop()
+          })
+          pc.close()
+        }
+      } catch {}
+      
+      // Try stopping local stream tracks
+      try {
+        if (call.localStream) {
+          (call.localStream as MediaStream).getTracks().forEach((t: MediaStreamTrack) => t.stop())
+        }
+      } catch {}
     }
+    
+    // 4. Update state
     setCallState("disconnected")
-    stopTimer()
-  }, [stopTimer])
+    setIsMuted(false)
+  }, [killAudio, stopTimer])
 
   const toggleMute = useCallback(() => {
     if (callRef.current) {
