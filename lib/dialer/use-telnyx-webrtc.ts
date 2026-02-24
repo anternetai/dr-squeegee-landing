@@ -17,11 +17,8 @@ export interface UseTelnyxWebRTCReturn {
 /**
  * Telnyx WebRTC Hook — browser-based calling via @telnyx/webrtc SDK
  * 
- * The user's browser becomes the phone. Audio goes through their
- * laptop mic/speakers or headset. No external phone needed.
- * 
- * Requires: TELNYX_SIP_USERNAME and TELNYX_SIP_PASSWORD from the
- * credential connection created in the Telnyx portal.
+ * Uses JWT authentication: the server generates a fresh token from a
+ * telephony_credential, and the client uses `login_token` to connect.
  */
 export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
   const [callState, setCallState] = useState<CallState>("idle")
@@ -35,6 +32,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
   const durationRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const callStartRef = useRef<number>(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const callerIdRef = useRef<string | null>(null)
 
   // Create a hidden audio element for remote audio
   useEffect(() => {
@@ -74,34 +72,39 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
 
     async function init() {
       try {
-        // Fetch credentials from our API
+        // Fetch JWT token from our API
         const res = await fetch("/api/portal/dialer/webrtc-token")
         if (!res.ok) {
-          const data = await res.json()
-          setError(data.error || "Failed to get WebRTC credentials")
+          const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+          setError(data.error || "Failed to get WebRTC token")
           return
         }
-        const { login, password, callerIdNumber } = await res.json()
+        const { login_token, callerIdNumber } = await res.json()
+
+        if (!login_token) {
+          setError("No WebRTC token received from server")
+          return
+        }
+
+        callerIdRef.current = callerIdNumber || null
 
         // Dynamically import to avoid SSR issues
         const { TelnyxRTC } = await import("@telnyx/webrtc")
 
         const client = new TelnyxRTC({
-          login,
-          password,
-          ringtoneFile: undefined,
-          ringbackFile: undefined,
+          login_token,
         })
 
         client.on("telnyx.ready", () => {
           if (mounted) {
+            console.log("[Telnyx] WebRTC client ready")
             setIsReady(true)
             setError(null)
           }
         })
 
         client.on("telnyx.error", (err: any) => {
-          console.error("Telnyx WebRTC error:", err)
+          console.error("[Telnyx] WebRTC error:", err)
           if (mounted) {
             setError(err?.message || "WebRTC connection error")
           }
@@ -122,13 +125,10 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
           }
         })
 
-        // Store caller ID for outbound calls
-        ;(client as any)._hfhCallerId = callerIdNumber
-
         client.connect()
         clientRef.current = client
       } catch (e) {
-        console.error("Telnyx WebRTC init error:", e)
+        console.error("[Telnyx] WebRTC init error:", e)
         if (mounted) {
           const msg = e instanceof Error ? e.message : String(e)
           setError(msg)
@@ -165,6 +165,10 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
           setCallState("disconnected")
           stopTimer()
           callRef.current = null
+          // Reset to idle after a brief delay so the UI can show "Call Ended"
+          setTimeout(() => {
+            if (mounted) setCallState("idle")
+          }, 3000)
           break
       }
     }
@@ -185,7 +189,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
 
   const makeCall = useCallback((phoneNumber: string) => {
     if (!clientRef.current || !isReady) {
-      setError("WebRTC not ready")
+      setError("WebRTC not ready — try refreshing the page")
       return
     }
 
@@ -200,18 +204,16 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     else if (formatted.length === 11 && formatted.startsWith("1")) formatted = `+${formatted}`
     else if (!formatted.startsWith("+")) formatted = `+${formatted}`
 
-    const callerIdNumber = (clientRef.current as any)._hfhCallerId || undefined
-
     try {
       const call = clientRef.current.newCall({
         destinationNumber: formatted,
-        callerIdNumber,
+        callerIdNumber: callerIdRef.current || undefined,
         audio: true,
         video: false,
       })
       callRef.current = call
     } catch (e) {
-      console.error("Failed to make call:", e)
+      console.error("[Telnyx] Failed to make call:", e)
       setError(e instanceof Error ? e.message : "Failed to initiate call")
       setCallState("idle")
     }
@@ -222,7 +224,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
       try {
         callRef.current.hangup()
       } catch (e) {
-        console.error("Hangup error:", e)
+        console.error("[Telnyx] Hangup error:", e)
       }
       callRef.current = null
     }
@@ -240,13 +242,6 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
       setIsMuted(!isMuted)
     }
   }, [isMuted])
-
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      stopTimer()
-    }
-  }, [stopTimer])
 
   return {
     callState,
