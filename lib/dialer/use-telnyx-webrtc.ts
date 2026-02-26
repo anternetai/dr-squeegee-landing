@@ -36,6 +36,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const callerIdRef = useRef<string | null>(null)
   const mountedRef = useRef(true)
+  const callStateRef = useRef<CallState>("idle")
 
   // Kill the audio element — stops all sound immediately
   const killAudio = useCallback(() => {
@@ -43,6 +44,12 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
       audioRef.current.pause()
       audioRef.current.srcObject = null
     }
+  }, [])
+
+  // Update both the React state and the synchronous ref
+  const updateCallState = useCallback((newState: CallState) => {
+    callStateRef.current = newState
+    setCallState(newState)
   }, [])
 
   // Create a hidden audio element for remote audio
@@ -158,10 +165,18 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
       })
 
       // CRITICAL: Ignore events from stale/old calls.
-      // When a new call starts, the old call's destroy/purge events
-      // must not clobber the new call's connecting/ringing state.
+      // Guard 1: If we have a current call and this event is from a different call, ignore.
       if (callRef.current !== null && call !== callRef.current) {
-        console.log(`[Telnyx] ⚠️ Ignoring event from stale call`)
+        console.log(`[Telnyx] ⚠️ Ignoring event from stale call (identity mismatch)`)
+        return
+      }
+      // Guard 2: If this is a terminal event but we're already in a forward state
+      // (e.g., old call's "destroy" arriving after new call's "connecting"),
+      // ignore it. This catches the case where hangUp() set callRef to null.
+      const terminalStates = ["hangup", "destroy", "purge"]
+      const forwardStates: CallState[] = ["connecting", "ringing", "connected"]
+      if (terminalStates.includes(state) && forwardStates.includes(callStateRef.current)) {
+        console.log(`[Telnyx] ⚠️ Ignoring stale terminal event "${state}" — current state is "${callStateRef.current}"`)
         return
       }
 
@@ -173,14 +188,14 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
       switch (state) {
         case "trying":
         case "requesting":
-          setCallState("connecting")
+          updateCallState("connecting")
           break
         case "ringing":
         case "early":
-          setCallState("ringing")
+          updateCallState("ringing")
           break
         case "active":
-          setCallState("connected")
+          updateCallState("connected")
           startTimer()
           break
         case "hangup":
@@ -191,7 +206,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
           killAudio()
           stopTimer()
           callRef.current = null
-          setCallState("disconnected")
+          updateCallState("disconnected")
           break
       }
     }
@@ -218,7 +233,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     }
 
     setError(null)
-    setCallState("connecting")
+    updateCallState("connecting")
     setCallDuration(0)
     setIsMuted(false)
 
@@ -241,9 +256,9 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     } catch (e) {
       console.error("[Telnyx] Call failed:", e)
       setError(e instanceof Error ? e.message : "Failed to initiate call")
-      setCallState("idle")
+      updateCallState("idle")
     }
-  }, [isReady])
+  }, [isReady, updateCallState])
 
   const hangUp = useCallback(() => {
     console.log("[Telnyx] 🔴 Hanging up...")
@@ -289,9 +304,9 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     }
     
     // 4. Update state
-    setCallState("disconnected")
+    updateCallState("disconnected")
     setIsMuted(false)
-  }, [killAudio, stopTimer])
+  }, [killAudio, stopTimer, updateCallState])
 
   const toggleMute = useCallback(() => {
     if (callRef.current) {
@@ -305,9 +320,9 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
   }, [isMuted])
 
   const setCallStateIdle = useCallback(() => {
-    setCallState("idle")
+    updateCallState("idle")
     setCallDuration(0)
-  }, [])
+  }, [updateCallState])
 
   return {
     callState,

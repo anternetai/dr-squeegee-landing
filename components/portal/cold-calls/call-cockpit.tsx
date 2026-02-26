@@ -422,6 +422,37 @@ export function CallCockpit() {
 
   // Recording blob from last call (for AI analysis)
   const lastCallBlobRef = useRef<Blob | null>(null)
+  // Snapshot of the lead being called — so auto-submit uses correct lead even after advancing
+  const callLeadRef = useRef<DialerLead | null>(null)
+
+  const leads = queue?.leads || []
+  const currentLead = leads[currentIndex] ?? null
+  const totalInQueue = queue?.totalToday || 0
+
+  const resetForm = useCallback(() => {
+    setNotes("")
+    setDemoDate("")
+    setShowNoteField(false)
+    setShowDemoDatePicker(false)
+    setSelectedOutcome(null)
+    setAiSuggestedOutcome(null)
+  }, [])
+
+  const submitDisposition = useCallback(
+    async (lead: DialerLead, outcome: ColdCallOutcome, notesText: string, demoDateStr: string) => {
+      await fetch("/api/portal/dialer/disposition", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadId: lead.id,
+          outcome: outcome as DialerOutcome,
+          notes: notesText || undefined,
+          demoDate: demoDateStr || undefined,
+        }),
+      })
+    },
+    []
+  )
 
   // Sync recording with call lifecycle
   const handleCallStateChange = useCallback(
@@ -431,13 +462,15 @@ export function CallCockpit() {
         lastCallBlobRef.current = null
         setAiSuggestedOutcome(null)
         setSelectedOutcome(null)
+        callLeadRef.current = currentLead
         startRecording()
       } else if (state === "disconnected") {
         // Stop recording when call ends — capture blob for AI
         const blob = await stopRecording()
         lastCallBlobRef.current = blob
+        resetRecording()
 
-        // Auto-suggest disposition based on call duration
+        // Auto-determine disposition based on call duration
         const callSeconds = Math.floor(durationMs / 1000)
         let suggested: ColdCallOutcome
         if (callSeconds < 15) {
@@ -447,20 +480,41 @@ export function CallCockpit() {
         } else {
           suggested = "conversation"
         }
-        setAiSuggestedOutcome(suggested)
-        setSelectedOutcome(suggested)
-        if (suggested === "conversation") {
+
+        // For no_answer and voicemail: auto-submit immediately, advance to next
+        if ((suggested === "no_answer" || suggested === "voicemail") && callLeadRef.current) {
+          const lead = callLeadRef.current
+          callLeadRef.current = null
+
+          // Submit disposition in background (don't await — keep UI snappy)
+          submitDisposition(lead, suggested, "", "").catch((err) =>
+            console.error("Auto-disposition error:", err)
+          )
+
+          setSessionDials((c) => c + 1)
+          resetForm()
+
+          // Advance to next lead
+          if (currentIndex < leads.length - 1) {
+            setCurrentIndex((i) => i + 1)
+          } else {
+            mutate()
+            setCurrentIndex(0)
+          }
+
+          // Trigger auto-dial for next lead
+          setAutoDialActive(true)
+        } else {
+          // Conversation — show suggestion, let user decide
+          setAiSuggestedOutcome(suggested)
+          setSelectedOutcome(suggested)
           setShowNoteField(true)
           setTimeout(() => notesRef.current?.focus(), 100)
         }
       }
     },
-    [startRecording, stopRecording, durationMs]
+    [startRecording, stopRecording, durationMs, currentLead, currentIndex, leads.length, mutate, submitDisposition, resetForm, resetRecording]
   )
-
-  const leads = queue?.leads || []
-  const currentLead = leads[currentIndex] ?? null
-  const totalInQueue = queue?.totalToday || 0
 
   useEffect(() => {
     if (leads.length > 0 && currentIndex >= leads.length) setCurrentIndex(0)
@@ -505,31 +559,6 @@ export function CallCockpit() {
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [currentLead, saving, showNoteField, selectedOutcome, notes, demoDate, isRecording]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const resetForm = useCallback(() => {
-    setNotes("")
-    setDemoDate("")
-    setShowNoteField(false)
-    setShowDemoDatePicker(false)
-    setSelectedOutcome(null)
-    setAiSuggestedOutcome(null)
-  }, [])
-
-  const submitDisposition = useCallback(
-    async (lead: DialerLead, outcome: ColdCallOutcome, notesText: string, demoDateStr: string) => {
-      await fetch("/api/portal/dialer/disposition", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leadId: lead.id,
-          outcome: outcome as DialerOutcome,
-          notes: notesText || undefined,
-          demoDate: demoDateStr || undefined,
-        }),
-      })
-    },
-    []
-  )
 
   const runAIAnalysis = useCallback(
     async (lead: DialerLead, outcome: ColdCallOutcome) => {
@@ -617,11 +646,13 @@ export function CallCockpit() {
           setCurrentIndex(0)
         }
 
-        if (blob && blob.size > 0) {
+        // Always submit the disposition
+        await submitDisposition(leadSnap, outcome, notesSnap, demoDateSnap)
+
+        // Run AI analysis in background if we have a recording (non-blocking)
+        if (blob && blob.size > 0 && outcome === "conversation") {
           setPendingLead(leadSnap)
-          await runAIAnalysis(leadSnap, outcome)
-        } else {
-          await submitDisposition(leadSnap, outcome, notesSnap, demoDateSnap)
+          runAIAnalysis(leadSnap, outcome).catch(console.error)
         }
       } catch (err) {
         console.error("Disposition error:", err)
