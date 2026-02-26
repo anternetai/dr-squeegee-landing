@@ -9,6 +9,7 @@ import {
   Trash2,
   ArrowUpDown,
   UserPlus,
+  FileText,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -52,6 +53,7 @@ import { Label } from "@/components/ui/label"
 import { CALL_OUTCOME_CONFIG } from "@/lib/portal/constants"
 import { formatDate, formatPhone, getRelativeTime, handleCall } from "@/lib/portal/format"
 import type { CrmProspect } from "@/lib/portal/types"
+import { QuoteBuilderDialog } from "@/components/portal/quote-builder-dialog"
 
 interface ProspectTableProps {
   prospects: CrmProspect[]
@@ -87,6 +89,7 @@ export function ProspectTable({
 }: ProspectTableProps) {
   const [sortField, setSortField] = useState<SortField>("name")
   const [sortDir, setSortDir] = useState<SortDir>("asc")
+  const [quoteProspect, setQuoteProspect] = useState<CrmProspect | null>(null)
   const [outcomeDialogId, setOutcomeDialogId] = useState<string | null>(null)
   const [followUpDialogId, setFollowUpDialogId] = useState<string | null>(null)
   const [deleteDialogId, setDeleteDialogId] = useState<string | null>(null)
@@ -340,6 +343,14 @@ export function ProspectTable({
                       <Button
                         variant="ghost"
                         size="icon-xs"
+                        title="Send Quote"
+                        onClick={() => setQuoteProspect(prospect)}
+                      >
+                        <FileText className="size-3 text-primary" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
                         title="Log outcome"
                         onClick={() => openOutcomeDialog(prospect)}
                       >
@@ -525,6 +536,17 @@ export function ProspectTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Quote Builder Dialog */}
+      {quoteProspect && (
+        <QuoteBuilderDialog
+          prospect={quoteProspect}
+          open={!!quoteProspect}
+          onOpenChange={(open) => {
+            if (!open) setQuoteProspect(null)
+          }}
+        />
+      )}
     </div>
   )
 }
