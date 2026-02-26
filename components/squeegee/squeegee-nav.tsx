@@ -8,12 +8,12 @@ import { cn } from "@/lib/utils"
 const navItems = [
   {
     label: "Dashboard",
-    href: "/squeegee-portal",
+    href: "/crm",
     icon: LayoutDashboard,
   },
   {
     label: "Jobs",
-    href: "/squeegee-portal/jobs",
+    href: "/crm/jobs",
     icon: Briefcase,
   },
 ]
@@ -27,7 +27,7 @@ export function SqueegeeNav() {
         <div className="flex h-14 items-center gap-6">
           {/* Brand */}
           <Link
-            href="/squeegee-portal"
+            href="/crm"
             className="flex items-center gap-2 font-bold text-[oklch(0.55_0.18_210)] shrink-0"
           >
             <Droplets className="h-5 w-5" />
@@ -39,8 +39,8 @@ export function SqueegeeNav() {
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive =
-                item.href === "/squeegee-portal"
-                  ? pathname === "/squeegee-portal"
+                item.href === "/crm"
+                  ? pathname === "/crm"
                   : pathname.startsWith(item.href)
               return (
                 <Link

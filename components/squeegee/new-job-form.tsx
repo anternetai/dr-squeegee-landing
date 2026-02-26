@@ -74,7 +74,7 @@ export function NewJobForm() {
       return
     }
 
-    router.push(`/squeegee-portal/jobs/${data.id}`)
+    router.push(`/crm/jobs/${data.id}`)
   }
 
   return (

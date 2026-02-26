@@ -27,7 +27,7 @@ export default async function JobDetailPage({ params }: PageProps) {
     <div className="space-y-5">
       <div>
         <Link
-          href="/squeegee-portal/jobs"
+          href="/crm/jobs"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3"
         >
           <ArrowLeft className="h-4 w-4" />

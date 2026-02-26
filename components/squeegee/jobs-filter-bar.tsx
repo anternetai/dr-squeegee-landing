@@ -13,7 +13,7 @@ export function JobsFilterBar({ activeStatus }: JobsFilterBarProps) {
   return (
     <div className="flex flex-wrap gap-2">
       <Link
-        href="/squeegee-portal/jobs"
+        href="/crm/jobs"
         className={cn(
           "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
           !activeStatus
@@ -26,7 +26,7 @@ export function JobsFilterBar({ activeStatus }: JobsFilterBarProps) {
       {STATUS_ORDER.map((status) => (
         <Link
           key={status}
-          href={`/squeegee-portal/jobs?status=${status}`}
+          href={`/crm/jobs?status=${status}`}
           className={cn(
             "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
             activeStatus === status

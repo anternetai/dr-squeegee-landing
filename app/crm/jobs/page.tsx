@@ -46,7 +46,7 @@ export default async function JobsPage({ searchParams }: PageProps) {
           </p>
         </div>
         <Button asChild className="bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white">
-          <Link href="/squeegee-portal/jobs/new">
+          <Link href="/crm/jobs/new">
             <Plus className="h-4 w-4 mr-2" />
             New Job
           </Link>
@@ -63,7 +63,7 @@ export default async function JobsPage({ searchParams }: PageProps) {
             <Briefcase className="h-10 w-10 mx-auto mb-3 opacity-30" />
             <p className="text-sm">No jobs found{status ? ` with status "${STATUS_LABELS[status as JobStatus]}"` : ""}.</p>
             <Button asChild className="mt-4 bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white">
-              <Link href="/squeegee-portal/jobs/new">
+              <Link href="/crm/jobs/new">
                 <Plus className="h-4 w-4 mr-2" />
                 New Job
               </Link>
@@ -94,7 +94,7 @@ export default async function JobsPage({ searchParams }: PageProps) {
                         className="hover:bg-muted/40 transition-colors cursor-pointer"
                       >
                         <td className="px-4 py-3">
-                          <Link href={`/squeegee-portal/jobs/${job.id}`} className="block">
+                          <Link href={`/crm/jobs/${job.id}`} className="block">
                             <span className="font-medium">{job.client_name}</span>
                             {job.client_phone && (
                               <span className="block text-xs text-muted-foreground">{job.client_phone}</span>
@@ -102,24 +102,24 @@ export default async function JobsPage({ searchParams }: PageProps) {
                           </Link>
                         </td>
                         <td className="px-4 py-3 text-muted-foreground max-w-[180px] truncate">
-                          <Link href={`/squeegee-portal/jobs/${job.id}`} className="block">
+                          <Link href={`/crm/jobs/${job.id}`} className="block">
                             {job.address}
                           </Link>
                         </td>
                         <td className="px-4 py-3">
-                          <Link href={`/squeegee-portal/jobs/${job.id}`} className="block">
+                          <Link href={`/crm/jobs/${job.id}`} className="block">
                             {job.service_type}
                           </Link>
                         </td>
                         <td className="px-4 py-3">
-                          <Link href={`/squeegee-portal/jobs/${job.id}`} className="block">
+                          <Link href={`/crm/jobs/${job.id}`} className="block">
                             <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[job.status]}`}>
                               {STATUS_LABELS[job.status]}
                             </span>
                           </Link>
                         </td>
                         <td className="px-4 py-3 text-muted-foreground text-xs">
-                          <Link href={`/squeegee-portal/jobs/${job.id}`} className="block">
+                          <Link href={`/crm/jobs/${job.id}`} className="block">
                             {job.appointment_date
                               ? new Date(job.appointment_date + "T00:00:00").toLocaleDateString("en-US", {
                                   month: "short",
@@ -134,7 +134,7 @@ export default async function JobsPage({ searchParams }: PageProps) {
                           </Link>
                         </td>
                         <td className="px-4 py-3 text-right font-medium">
-                          <Link href={`/squeegee-portal/jobs/${job.id}`} className="block">
+                          <Link href={`/crm/jobs/${job.id}`} className="block">
                             {job.price != null ? `$${Number(job.price).toFixed(2)}` : "—"}
                           </Link>
                         </td>
@@ -149,7 +149,7 @@ export default async function JobsPage({ searchParams }: PageProps) {
           {/* Cards — mobile */}
           <div className="md:hidden space-y-3">
             {allJobs.map((job) => (
-              <Link key={job.id} href={`/squeegee-portal/jobs/${job.id}`}>
+              <Link key={job.id} href={`/crm/jobs/${job.id}`}>
                 <Card className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-start justify-between gap-2">

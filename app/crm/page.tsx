@@ -89,7 +89,7 @@ export default async function SqueegeePortalPage() {
           </p>
         </div>
         <Button asChild className="bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white">
-          <Link href="/squeegee-portal/jobs/new">
+          <Link href="/crm/jobs/new">
             <Plus className="h-4 w-4 mr-2" />
             New Job
           </Link>
@@ -99,7 +99,7 @@ export default async function SqueegeePortalPage() {
       {/* Status summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {statsCards.map(({ label, count, icon: Icon, color, bg }) => (
-          <Link key={label} href={`/squeegee-portal/jobs?status=${label.toLowerCase()}`}>
+          <Link key={label} href={`/crm/jobs?status=${label.toLowerCase()}`}>
             <Card className="hover:shadow-md transition-shadow cursor-pointer">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
@@ -140,7 +140,7 @@ export default async function SqueegeePortalPage() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Recent Activity</CardTitle>
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/squeegee-portal/jobs">View all</Link>
+              <Link href="/crm/jobs">View all</Link>
             </Button>
           </div>
         </CardHeader>
@@ -150,7 +150,7 @@ export default async function SqueegeePortalPage() {
               <Briefcase className="h-10 w-10 mx-auto mb-3 opacity-30" />
               <p className="text-sm">No jobs yet. Create your first job to get started.</p>
               <Button asChild className="mt-4 bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white">
-                <Link href="/squeegee-portal/jobs/new">
+                <Link href="/crm/jobs/new">
                   <Plus className="h-4 w-4 mr-2" />
                   New Job
                 </Link>
@@ -161,7 +161,7 @@ export default async function SqueegeePortalPage() {
               {recentJobs.map((job) => (
                 <Link
                   key={job.id}
-                  href={`/squeegee-portal/jobs/${job.id}`}
+                  href={`/crm/jobs/${job.id}`}
                   className="flex items-center justify-between px-6 py-3 hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">

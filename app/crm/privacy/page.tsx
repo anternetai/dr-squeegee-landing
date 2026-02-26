@@ -127,7 +127,7 @@ export default function PrivacyPolicy() {
         <div className="max-w-3xl mx-auto text-center text-slate-400 text-sm">
           <p>&copy; {new Date().getFullYear()} Dr. Squeegee House Washing. All rights reserved.</p>
           <div className="mt-2">
-            <Link href="/squeegee-portal/privacy" className="hover:text-white">Privacy Policy</Link>
+            <Link href="/crm/privacy" className="hover:text-white">Privacy Policy</Link>
           </div>
         </div>
       </footer>

@@ -3,26 +3,27 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   async rewrites() {
     return [
-      // drsqueegeeclt.com/portal → /squeegee-portal (host-based rewrite)
+      // drsqueegeeclt.com/crm → /crm (same path, no conflict)
+      // drsqueegeeclt.com/portal → /crm (legacy alias)
       {
         source: "/portal",
         has: [{ type: "host", value: "drsqueegeeclt.com" }],
-        destination: "/squeegee-portal",
+        destination: "/crm",
       },
       {
         source: "/portal/:path*",
         has: [{ type: "host", value: "drsqueegeeclt.com" }],
-        destination: "/squeegee-portal/:path*",
+        destination: "/crm/:path*",
       },
       {
         source: "/portal",
         has: [{ type: "host", value: "www.drsqueegeeclt.com" }],
-        destination: "/squeegee-portal",
+        destination: "/crm",
       },
       {
         source: "/portal/:path*",
         has: [{ type: "host", value: "www.drsqueegeeclt.com" }],
-        destination: "/squeegee-portal/:path*",
+        destination: "/crm/:path*",
       },
     ];
   },
@@ -43,13 +44,13 @@ const nextConfig: NextConfig = {
       {
         source: "/",
         has: [{ type: "host", value: "drsqueegeeclt.com" }],
-        destination: "/portal",
+        destination: "/crm",
         permanent: false,
       },
       {
         source: "/",
         has: [{ type: "host", value: "www.drsqueegeeclt.com" }],
-        destination: "/portal",
+        destination: "/crm",
         permanent: false,
       },
     ];
