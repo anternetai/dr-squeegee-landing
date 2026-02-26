@@ -28,10 +28,10 @@ export const STATUS_LABELS: Record<JobStatus, string> = {
 
 export const SERVICE_TYPES = [
   "House Washing",
-  "Roof Washing",
+  "Surface Cleaning",
   "Driveway",
-  "Gutters",
-  "Other",
+  "Pool Deck",
+  "Pavers",
 ] as const
 
 export type ServiceType = (typeof SERVICE_TYPES)[number]
