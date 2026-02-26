@@ -221,6 +221,29 @@ function TaskCard({ task }: { task: AgentTask }) {
   )
 }
 
+function CompletedSection({ tasks }: { tasks: AgentTask[] }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="space-y-3">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 text-sm font-semibold text-emerald-500 uppercase tracking-wider hover:opacity-80 transition-opacity"
+      >
+        <CheckCircle2 className="size-4" />
+        Completed ({tasks.length})
+        {open ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+      </button>
+      {open && (
+        <div className="space-y-3">
+          {tasks.map((task) => (
+            <TaskCard key={task.id} task={task} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ControlPanelContent() {
   const { user } = use(PortalAuthContext)
   const [tasks, setTasks] = useState<AgentTask[]>([])
@@ -390,18 +413,9 @@ function ControlPanelContent() {
         </div>
       )}
 
-      {/* Completed */}
+      {/* Completed — collapsible */}
       {completed.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-emerald-500 uppercase tracking-wider">
-            Completed
-          </h2>
-          <div className="space-y-3">
-            {completed.map((task) => (
-              <TaskCard key={task.id} task={task} />
-            ))}
-          </div>
-        </div>
+        <CompletedSection tasks={completed} />
       )}
 
       {/* Failed */}
