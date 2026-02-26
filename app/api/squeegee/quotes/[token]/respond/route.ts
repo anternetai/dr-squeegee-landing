@@ -1,11 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import Stripe from 'stripe'
 
 function getAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
+}
+
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: '2026-02-25.clover',
+  })
 }
 
 type QuoteAction = 'accepted' | 'declined' | 'help'
@@ -42,7 +49,75 @@ const ACTION_LABEL: Record<QuoteAction, string> = {
   help: 'Client Has Questions',
 }
 
-async function sendSlackNotification(quote: SqueegeeQuote, action: QuoteAction) {
+async function createInvoiceForQuote(quote: SqueegeeQuote) {
+  const supabase = getAdmin()
+  const stripe = getStripe()
+
+  // Generate invoice number
+  const { count } = await supabase
+    .from('squeegee_invoices')
+    .select('*', { count: 'exact', head: true })
+  const sequence = (count ?? 0) + 1001
+  const invoiceNumber = `INV-${new Date().getFullYear()}-${String(sequence).padStart(4, '0')}`
+
+  // Create Stripe Payment Link
+  const amountInCents = Math.round(Number(quote.total_price) * 100)
+  const serviceNames = quote.services.map((s) => s.name).join(', ')
+  const stripePrice = await stripe.prices.create({
+    currency: 'usd',
+    unit_amount: amountInCents,
+    product_data: { name: `Dr. Squeegee - ${serviceNames}` },
+  })
+  const paymentLink = await stripe.paymentLinks.create({
+    line_items: [{ price: stripePrice.id, quantity: 1 }],
+    metadata: {
+      quote_id: quote.id,
+      job_id: quote.job_id ?? '',
+      client_name: quote.client_name,
+    },
+  })
+
+  // Due in 7 days
+  const dueDate = new Date()
+  dueDate.setDate(dueDate.getDate() + 7)
+
+  // Save invoice
+  const { data: invoice, error: invoiceError } = await supabase
+    .from('squeegee_invoices')
+    .insert({
+      job_id: quote.job_id,
+      invoice_number: invoiceNumber,
+      amount: Number(quote.total_price),
+      due_date: dueDate.toISOString().split('T')[0],
+      notes: `Auto-generated from accepted quote. Services: ${serviceNames}`,
+      status: 'sent',
+      stripe_payment_link: paymentLink.url,
+    })
+    .select()
+    .single()
+
+  if (invoiceError) {
+    console.error('Auto-invoice creation failed:', invoiceError)
+    return null
+  }
+
+  // Log activity
+  if (quote.job_id) {
+    await supabase.from('squeegee_activity').insert({
+      job_id: quote.job_id,
+      type: 'invoice_created',
+      note: `Invoice ${invoiceNumber} auto-generated for $${Number(quote.total_price).toFixed(2)}`,
+    })
+  }
+
+  return { invoiceNumber, paymentUrl: paymentLink.url }
+}
+
+async function sendSlackNotification(
+  quote: SqueegeeQuote,
+  action: QuoteAction,
+  invoiceInfo?: { invoiceNumber: string; paymentUrl: string } | null
+) {
   const services = Array.isArray(quote.services) ? quote.services : []
   const serviceNames = services.map((s: QuoteService) => s.name).join(', ')
   const emoji = ACTION_EMOJI[action]
@@ -52,6 +127,9 @@ async function sendSlackNotification(quote: SqueegeeQuote, action: QuoteAction) 
 
   if (action === 'accepted') {
     text += `\n\nText them to confirm: ${quote.client_phone ?? 'N/A'}`
+    if (invoiceInfo) {
+      text += `\n\n💰 *Invoice ${invoiceInfo.invoiceNumber} auto-created*\nPayment link: ${invoiceInfo.paymentUrl}`
+    }
   } else if (action === 'help') {
     text += `\n\nThey have questions — reach out: ${quote.client_phone ?? 'N/A'}`
   }
@@ -100,7 +178,7 @@ export async function POST(
       return NextResponse.json({ error: 'Quote not found' }, { status: 404 })
     }
 
-    // Update status
+    // Update quote status
     const { error: updateError } = await supabase
       .from('squeegee_quotes')
       .update({
@@ -114,8 +192,9 @@ export async function POST(
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
-    // Auto-update job status based on response
     const typedQuote = quote as SqueegeeQuote
+
+    // Auto-update job status based on response
     if (typedQuote.job_id) {
       if (action === 'accepted') {
         await supabase
@@ -130,8 +209,14 @@ export async function POST(
       }
     }
 
-    // Send Slack notification for all responses
-    await sendSlackNotification(typedQuote, action)
+    // Auto-generate invoice when accepted
+    let invoiceInfo: { invoiceNumber: string; paymentUrl: string } | null = null
+    if (action === 'accepted') {
+      invoiceInfo = await createInvoiceForQuote(typedQuote)
+    }
+
+    // Send Slack notification (includes payment link if accepted)
+    await sendSlackNotification(typedQuote, action, invoiceInfo)
 
     return NextResponse.json({ ok: true })
   } catch (err) {

@@ -27,6 +27,7 @@ import {
   DollarSign,
   FileText,
   Clock,
+  CalendarPlus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -346,6 +347,20 @@ export function JobDetailClient({ job: initialJob }: Props) {
       {/* Appointment fields (quick-edit when not in full edit mode) */}
       {!editing && showAppointmentFields && (
         <AppointmentQuickEdit job={job} onUpdate={setJob} />
+      )}
+
+      {/* Add to Calendar button */}
+      {job.appointment_date && (
+        <Button
+          asChild
+          variant="outline"
+          className="w-full gap-2"
+        >
+          <a href={`/api/squeegee/jobs/${job.id}/calendar`} download>
+            <CalendarPlus className="h-4 w-4" />
+            Add to Calendar
+          </a>
+        </Button>
       )}
 
       {/* Generate Quote Text */}
