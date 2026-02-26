@@ -6,5 +6,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/portal/:path*", "/api/portal/:path*"],
+  matcher: ["/portal/:path*", "/api/portal/:path*", "/squeegee-portal/:path*"],
 }

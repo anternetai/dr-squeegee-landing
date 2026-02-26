@@ -5,24 +5,26 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/",
-        has: [
-          {
-            type: "host",
-            value: "homefieldhub.com",
-          },
-        ],
+        has: [{ type: "host", value: "homefieldhub.com" }],
         destination: "/call",
         permanent: false,
       },
       {
         source: "/",
-        has: [
-          {
-            type: "host",
-            value: "www.homefieldhub.com",
-          },
-        ],
+        has: [{ type: "host", value: "www.homefieldhub.com" }],
         destination: "/call",
+        permanent: false,
+      },
+      {
+        source: "/",
+        has: [{ type: "host", value: "drsqueegeeclt.com" }],
+        destination: "/squeegee-portal",
+        permanent: false,
+      },
+      {
+        source: "/",
+        has: [{ type: "host", value: "www.drsqueegeeclt.com" }],
+        destination: "/squeegee-portal",
         permanent: false,
       },
     ];
