@@ -9,9 +9,11 @@ function getAdmin() {
   )
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-02-25.clover',
-})
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: '2026-02-25.clover',
+  })
+}
 
 async function sendSlackNotification(text: string) {
   if (!process.env.SLACK_BOT_TOKEN) return
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
   // If webhook secret is configured, verify signature
   if (process.env.STRIPE_WEBHOOK_SECRET && sig) {
     try {
-      stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
+      getStripe().webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
     } catch (err) {
       console.error('Stripe webhook signature verification failed:', err)
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
 
       if (paymentLinkId) {
         // Fetch the payment link to get its URL
-        const link = await stripe.paymentLinks.retrieve(paymentLinkId)
+        const link = await getStripe().paymentLinks.retrieve(paymentLinkId)
         const linkUrl = link.url
 
         // Find the invoice with this payment link
