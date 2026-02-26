@@ -58,6 +58,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    // Auto-update job status to "quoted" and set price/service info
+    if (job_id) {
+      const serviceNames = services.map((s) => s.name).join(', ')
+      await supabase
+        .from('squeegee_jobs')
+        .update({
+          status: 'quoted',
+          price: total_price,
+          service_type: serviceNames,
+        })
+        .eq('id', job_id)
+    }
+
     return NextResponse.json({ quote: data })
   } catch (err) {
     console.error('Create quote error:', err)

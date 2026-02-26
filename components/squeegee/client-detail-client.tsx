@@ -28,12 +28,24 @@ function InfoRow({
   className?: string
 }) {
   if (!value) return null
+  const isAddress = label === "Address"
   return (
     <div className={cn("flex items-start gap-2", className)}>
       <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
       <div>
         <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm">{value}</p>
+        {isAddress ? (
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(value)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-[oklch(0.5_0.18_210)] hover:underline"
+          >
+            {value}
+          </a>
+        ) : (
+          <p className="text-sm">{value}</p>
+        )}
       </div>
     </div>
   )

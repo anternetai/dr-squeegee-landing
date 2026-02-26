@@ -114,8 +114,24 @@ export async function POST(
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
+    // Auto-update job status based on response
+    const typedQuote = quote as SqueegeeQuote
+    if (typedQuote.job_id) {
+      if (action === 'accepted') {
+        await supabase
+          .from('squeegee_jobs')
+          .update({ status: 'approved' })
+          .eq('id', typedQuote.job_id)
+      } else if (action === 'declined') {
+        await supabase
+          .from('squeegee_jobs')
+          .update({ status: 'new' })
+          .eq('id', typedQuote.job_id)
+      }
+    }
+
     // Send Slack notification for all responses
-    await sendSlackNotification(quote as SqueegeeQuote, action)
+    await sendSlackNotification(typedQuote, action)
 
     return NextResponse.json({ ok: true })
   } catch (err) {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { SqueegeeJob } from "@/lib/squeegee/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -80,6 +81,7 @@ interface Props {
 }
 
 export function QuoteBuilder({ job }: Props) {
+  const router = useRouter()
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [prices, setPrices] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
@@ -155,8 +157,9 @@ export function QuoteBuilder({ job }: Props) {
 
       const data = (await res.json()) as { quote: { id: string; token: string } }
       setGeneratedToken(data.quote.token)
-      // Refresh past quotes
+      // Refresh past quotes + page data (job status updates to "quoted")
       await fetchPastQuotes()
+      router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error")
     } finally {
