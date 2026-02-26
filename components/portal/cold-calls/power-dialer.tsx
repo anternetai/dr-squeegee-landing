@@ -107,6 +107,24 @@ export function PowerDialer({
     [webrtcMakeCall]
   )
 
+  // ─── clearResetAndDial ────────────────────────────────────────────────────
+  // Cancels the disconnected→idle reset timer from the previous call before
+  // dialing, so the 2s timeout can't clobber the new call's "connecting" state.
+
+  const clearResetAndDial = useCallback(
+    (phoneNumber: string) => {
+      if (resetTimerRef.current) {
+        clearTimeout(resetTimerRef.current)
+        resetTimerRef.current = null
+      }
+      if (callState === "disconnected") {
+        setCallStateIdle?.()
+      }
+      makeCall(phoneNumber)
+    },
+    [callState, makeCall, setCallStateIdle]
+  )
+
   // ─── Notify parent of call state changes ──────────────────────────────────
 
   useEffect(() => {
@@ -191,10 +209,10 @@ export function PowerDialer({
       hasAutoDialedRef.current = true
       setLocalAutoDial(false)
       if (lead.phone_number) {
-        makeCall(lead.phone_number)
+        clearResetAndDial(lead.phone_number)
       }
     }
-  }, [countdown, localAutoDial, lead, callState, makeCall])
+  }, [countdown, localAutoDial, lead, callState, clearResetAndDial])
 
   // ─── Cleanup on unmount ──────────────────────────────────────────────────
 
@@ -215,8 +233,8 @@ export function PowerDialer({
       clearInterval(countdownRef.current)
       countdownRef.current = null
     }
-    makeCall(lead.phone_number)
-  }, [lead, makeCall])
+    clearResetAndDial(lead.phone_number)
+  }, [lead, clearResetAndDial])
 
   const handlePause = useCallback(() => {
     setLocalAutoDial(false)
@@ -235,8 +253,8 @@ export function PowerDialer({
 
   const handleManualDial = useCallback(() => {
     if (!lead?.phone_number) return
-    makeCall(lead.phone_number)
-  }, [lead, makeCall])
+    clearResetAndDial(lead.phone_number)
+  }, [lead, clearResetAndDial])
 
   // ─── Derived state ────────────────────────────────────────────────────────
 

@@ -406,6 +406,7 @@ export function CallCockpit() {
   const [powerMode, setPowerMode] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [autoDialActive, setAutoDialActive] = useState(false)
+  const [aiSuggestedOutcome, setAiSuggestedOutcome] = useState<ColdCallOutcome | null>(null)
 
   // AI state
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
@@ -428,14 +429,33 @@ export function CallCockpit() {
       if (state === "connecting") {
         // Start recording when we begin dialing
         lastCallBlobRef.current = null
+        setAiSuggestedOutcome(null)
+        setSelectedOutcome(null)
         startRecording()
       } else if (state === "disconnected") {
         // Stop recording when call ends — capture blob for AI
         const blob = await stopRecording()
         lastCallBlobRef.current = blob
+
+        // Auto-suggest disposition based on call duration
+        const callSeconds = Math.floor(durationMs / 1000)
+        let suggested: ColdCallOutcome
+        if (callSeconds < 15) {
+          suggested = "no_answer"
+        } else if (callSeconds < 45) {
+          suggested = "voicemail"
+        } else {
+          suggested = "conversation"
+        }
+        setAiSuggestedOutcome(suggested)
+        setSelectedOutcome(suggested)
+        if (suggested === "conversation") {
+          setShowNoteField(true)
+          setTimeout(() => notesRef.current?.focus(), 100)
+        }
       }
     },
-    [startRecording, stopRecording]
+    [startRecording, stopRecording, durationMs]
   )
 
   const leads = queue?.leads || []
@@ -492,6 +512,7 @@ export function CallCockpit() {
     setShowNoteField(false)
     setShowDemoDatePicker(false)
     setSelectedOutcome(null)
+    setAiSuggestedOutcome(null)
   }, [])
 
   const submitDisposition = useCallback(
@@ -773,6 +794,12 @@ export function CallCockpit() {
         {isRecording && (
           <span className="inline-flex items-center gap-1 text-orange-400">
             <Sparkles className="size-2.5" /> AI analyzes
+          </span>
+        )}
+        {!isRecording && aiSuggestedOutcome && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-400 ring-1 ring-orange-500/20">
+            <Sparkles className="size-2.5" />
+            AI suggested: {OUTCOME_CONFIG[aiSuggestedOutcome].label}
           </span>
         )}
       </p>
