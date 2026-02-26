@@ -63,7 +63,7 @@ async function sendSlackNotification(quote: SqueegeeQuote, action: QuoteAction) 
       Authorization: `Bearer ${process.env.SLACK_BOT_TOKEN}`,
     },
     body: JSON.stringify({
-      channel: 'U08BPEYRZEF',
+      channel: 'U0ABZDLENJ1',
       text,
     }),
   })
