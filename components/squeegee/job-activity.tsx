@@ -25,7 +25,7 @@ function getIcon(type: string) {
 }
 
 function getIconColor(type: string) {
-  if (type.startsWith("status_")) return "text-[oklch(0.5_0.18_210)]"
+  if (type.startsWith("status_")) return "text-[#3A6B4C]"
   if (type === "invoice_created") return "text-blue-600 dark:text-blue-400"
   if (type === "invoice_paid") return "text-green-600 dark:text-green-400"
   if (type === "invoice_sent") return "text-purple-600 dark:text-purple-400"
@@ -83,7 +83,7 @@ export function JobActivity({ jobId }: Props) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-[oklch(0.5_0.18_210)]" />
+            <Activity className="h-4 w-4 text-[#3A6B4C]" />
             <CardTitle className="text-base">Activity</CardTitle>
           </div>
           {lastRefreshed && (

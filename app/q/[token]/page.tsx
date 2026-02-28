@@ -35,10 +35,11 @@ function getAdmin() {
 
 export const metadata: Metadata = {
   title: 'Your Quote – Dr. Squeegee',
-  description: 'Professional house washing service quote from Dr. Squeegee',
+  description: 'Professional house washing service quote from Dr. Squeegee — House Calls for a Cleaner Home.',
+  icons: { icon: '/favicon-squeegee.svg' },
   openGraph: {
-    title: 'Dr. Squeegee – Your Service Quote',
-    description: 'Professional house washing service quote from Dr. Squeegee',
+    title: 'Dr. Squeegee — Your Service Quote',
+    description: 'House Calls for a Cleaner Home. Professional pressure washing in Charlotte, NC.',
     siteName: 'Dr. Squeegee',
     type: 'website',
   },
@@ -56,11 +57,11 @@ export default async function QuotePage({ params }: PageProps) {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-[#FEFCF7] p-4" style={{ fontFamily: "var(--font-brand-body), sans-serif" }}>
         <div className="text-center">
-          <p className="text-4xl mb-4">🔍</p>
-          <h1 className="text-xl font-bold text-gray-800 mb-2">Quote Not Found</h1>
-          <p className="text-gray-500 text-sm">
+          <p className="text-4xl mb-4">&#128269;</p>
+          <h1 className="text-xl font-bold text-[#2B2B2B] mb-2" style={{ fontFamily: "var(--font-brand-display), serif" }}>Quote Not Found</h1>
+          <p className="text-[#2B2B2B]/50 text-sm">
             This link may have expired or the quote does not exist.
           </p>
         </div>

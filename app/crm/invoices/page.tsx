@@ -186,7 +186,7 @@ export default async function InvoicesPage() {
                         <td className="px-4 py-3 text-right">
                           <Link
                             href={`/crm/jobs/${inv.job_id}`}
-                            className="text-xs text-[oklch(0.5_0.18_210)] hover:underline"
+                            className="text-xs text-[#3A6B4C] hover:underline"
                           >
                             View Job →
                           </Link>

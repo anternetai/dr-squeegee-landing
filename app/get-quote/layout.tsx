@@ -1,13 +1,14 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Dr. Squeegee | Charlotte Pressure Washing",
+  title: "Dr. Squeegee | House Calls for a Cleaner Home",
   description:
-    "Professional pressure washing in Charlotte, NC. House washing, driveways, patios — done right, every time. Get your free quote today.",
+    "Charlotte's trusted pressure washing specialist. House washing, driveways, patios — done right, every time. Get your free quote today.",
+  icons: { icon: "/favicon-squeegee.svg" },
   openGraph: {
-    title: "Dr. Squeegee — Charlotte's Trusted Pressure Washing Pros",
+    title: "Dr. Squeegee — House Calls for a Cleaner Home",
     description:
-      "House washing, driveways, patios — done right, every time. Free estimates.",
+      "Charlotte's trusted pressure washing specialist. Free estimates, licensed & insured.",
     siteName: "Dr. Squeegee",
     type: "website",
   },
@@ -19,7 +20,7 @@ export default function GetQuoteLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-zinc-950 text-white antialiased">
+    <div className="min-h-screen bg-[#FEFCF7] text-[#2B2B2B] antialiased" style={{ fontFamily: "var(--font-brand-body), sans-serif" }}>
       {children}
     </div>
   )

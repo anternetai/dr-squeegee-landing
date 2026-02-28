@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Droplets, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 export default function CRMLogin() {
   const router = useRouter()
@@ -28,27 +28,36 @@ export default function CRMLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#FEFCF7] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="flex items-center justify-center gap-2 mb-8 text-teal-400">
-          <Droplets className="h-8 w-8" />
-          <span className="text-2xl font-bold text-white">Dr. Squeegee</span>
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <span
+            className="text-2xl font-bold text-[#3A6B4C]"
+            style={{ fontFamily: "var(--font-brand-display), serif" }}
+          >
+            Dr. Squeegee
+          </span>
         </div>
-        <form onSubmit={handleSubmit} className="bg-zinc-900 rounded-xl p-6 border border-zinc-800 space-y-4">
-          <h1 className="text-lg font-semibold text-white text-center">CRM Access</h1>
+        <form onSubmit={handleSubmit} className="bg-[#F5F0E1] rounded-xl p-6 border border-[#3A6B4C]/15 space-y-4">
+          <h1
+            className="text-lg font-semibold text-[#2B2B2B] text-center"
+            style={{ fontFamily: "var(--font-brand-display), serif" }}
+          >
+            CRM Access
+          </h1>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Passphrase"
             autoFocus
-            className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-teal-500"
+            className="w-full px-4 py-3 bg-white border border-[#3A6B4C]/15 rounded-lg text-[#2B2B2B] placeholder:text-[#2B2B2B]/30 focus:outline-none focus:border-[#3A6B4C]"
           />
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-[#B8453A]">{error}</p>}
           <button
             type="submit"
             disabled={loading || !password}
-            className="w-full py-3 bg-teal-600 hover:bg-teal-500 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 bg-[#3A6B4C] hover:bg-[#2F5A3F] disabled:bg-[#2B2B2B]/20 disabled:cursor-not-allowed text-[#F5F0E1] font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             Enter

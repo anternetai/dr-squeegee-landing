@@ -11,7 +11,7 @@ const STATUS_COLORS: Record<JobStatus, string> = {
   new: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   quoted: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
   approved: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-  scheduled: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
+  scheduled: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
   complete: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
 }
 
@@ -66,8 +66,8 @@ export default async function SqueegeePortalPage() {
       label: "Scheduled",
       count: counts.scheduled,
       icon: Briefcase,
-      color: "text-teal-600 dark:text-teal-400",
-      bg: "bg-teal-50 dark:bg-teal-900/20",
+      color: "text-emerald-600 dark:text-emerald-400",
+      bg: "bg-emerald-50 dark:bg-emerald-900/20",
     },
     {
       label: "Complete",
@@ -88,7 +88,7 @@ export default async function SqueegeePortalPage() {
             {allJobs.length} total job{allJobs.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <Button asChild className="bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white">
+        <Button asChild className="bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white">
           <Link href="/crm/jobs/new">
             <Plus className="h-4 w-4 mr-2" />
             New Job
@@ -118,17 +118,17 @@ export default async function SqueegeePortalPage() {
       </div>
 
       {/* Revenue card */}
-      <Card className="border-[oklch(0.85_0.08_210)] dark:border-[oklch(0.3_0.08_210)]">
+      <Card className="border-[#C8D8CE] dark:border-[#1E3E2B]">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Revenue from completed jobs</p>
-              <p className="text-3xl font-bold text-[oklch(0.5_0.18_210)]">
+              <p className="text-3xl font-bold text-[#3A6B4C]">
                 ${totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="p-3 rounded-full bg-[oklch(0.92_0.06_210)] dark:bg-[oklch(0.2_0.08_210)]">
-              <DollarSign className="h-6 w-6 text-[oklch(0.5_0.18_210)]" />
+            <div className="p-3 rounded-full bg-[#E8F0EA] dark:bg-[#152419]">
+              <DollarSign className="h-6 w-6 text-[#3A6B4C]" />
             </div>
           </div>
         </CardContent>
@@ -149,7 +149,7 @@ export default async function SqueegeePortalPage() {
             <div className="px-6 py-8 text-center text-muted-foreground">
               <Briefcase className="h-10 w-10 mx-auto mb-3 opacity-30" />
               <p className="text-sm">No jobs yet. Create your first job to get started.</p>
-              <Button asChild className="mt-4 bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white">
+              <Button asChild className="mt-4 bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white">
                 <Link href="/crm/jobs/new">
                   <Plus className="h-4 w-4 mr-2" />
                   New Job

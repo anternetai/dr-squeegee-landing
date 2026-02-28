@@ -17,10 +17,7 @@ import {
   PROPERTY_TYPES,
   TIMELINES,
 } from "@/lib/squeegee/landing-data"
-
-// Brand colors
-const TEAL = "oklch(0.5_0.18_210)"
-const TEAL_HOVER = "oklch(0.45_0.18_210)"
+import { COLORS, BRAND, FONTS } from "@/lib/squeegee/brand"
 
 export function LandingContent() {
   const searchParams = useSearchParams()
@@ -71,43 +68,47 @@ export function LandingContent() {
   return (
     <>
       {/* ── Sticky Header ── */}
-      <header className="sticky top-0 z-50 bg-zinc-950/90 backdrop-blur-sm border-b border-zinc-800">
+      <header className="sticky top-0 z-50 bg-[#FEFCF7]/90 backdrop-blur-sm border-b border-[#3A6B4C]/10">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-3">
-          <span className="text-lg font-bold tracking-tight">
-            Dr.&nbsp;<span style={{ color: TEAL }}>Squeegee</span>
+          <span style={{ fontFamily: FONTS.display }} className="text-lg font-bold tracking-tight text-[#2B2B2B]">
+            Dr.&nbsp;<span className="text-[#3A6B4C]">Squeegee</span>
           </span>
           <a
-            href="tel:+19802428048"
-            className="flex items-center gap-1.5 text-sm font-medium hover:opacity-80 transition-opacity"
-            style={{ color: TEAL }}
+            href={`tel:${BRAND.phoneTel}`}
+            className="flex items-center gap-1.5 text-sm font-medium text-[#3A6B4C] hover:opacity-80 transition-opacity"
           >
             <Phone className="h-4 w-4" />
-            (980) 242-8048
+            {BRAND.phone}
           </a>
         </div>
       </header>
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-zinc-950 via-[oklch(0.15_0.05_210)] to-zinc-950" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#F5F0E1] via-[#FEFCF7] to-[#FEFCF7]" />
         <div className="relative max-w-4xl mx-auto px-4 py-20 md:py-28 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4">
+          {/* Gold accent line */}
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="h-px w-12 bg-[#C8973E]" />
+            <Star className="h-4 w-4 text-[#C8973E] fill-[#C8973E]" />
+            <div className="h-px w-12 bg-[#C8973E]" />
+          </div>
+          <h1
+            style={{ fontFamily: FONTS.display }}
+            className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4 text-[#2B2B2B]"
+          >
             Charlotte&apos;s Trusted{" "}
-            <span style={{ color: TEAL }}>Pressure Washing</span> Pros
+            <span className="text-[#3A6B4C]">Pressure Washing</span> Pros
           </h1>
-          <p className="text-lg md:text-xl text-zinc-400 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-[#2B2B2B]/60 mb-2 max-w-2xl mx-auto">
+            {BRAND.tagline}
+          </p>
+          <p className="text-sm text-[#2B2B2B]/40 mb-8">
             House washing, driveways, patios — done right, every time.
           </p>
           <a
             href="#get-quote"
-            className="inline-flex items-center gap-2 text-white font-semibold py-3.5 px-8 rounded-lg text-lg transition-colors"
-            style={{ backgroundColor: TEAL }}
-            onMouseOver={(e) =>
-              (e.currentTarget.style.backgroundColor = TEAL_HOVER)
-            }
-            onMouseOut={(e) =>
-              (e.currentTarget.style.backgroundColor = TEAL)
-            }
+            className="inline-flex items-center gap-2 text-[#F5F0E1] font-semibold py-3.5 px-8 rounded-lg text-lg transition-colors bg-[#3A6B4C] hover:bg-[#2F5A3F]"
           >
             Get Your Free Quote
             <ChevronRight className="h-5 w-5" />
@@ -116,22 +117,22 @@ export function LandingContent() {
       </section>
 
       {/* ── Trust Bar ── */}
-      <section className="border-y border-zinc-800 bg-zinc-900/50">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-zinc-300">
+      <section className="border-y border-[#3A6B4C]/10 bg-[#F5F0E1]/50">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-[#2B2B2B]/70">
           <span className="flex items-center gap-2">
-            <Shield className="h-4 w-4" style={{ color: TEAL }} />
+            <Shield className="h-4 w-4 text-[#3A6B4C]" />
             Licensed &amp; Insured
           </span>
           <span className="flex items-center gap-2">
-            <Star className="h-4 w-4 text-yellow-500" />
+            <Star className="h-4 w-4 text-[#C8973E] fill-[#C8973E]" />
             5-Star Rated
           </span>
           <span className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" style={{ color: TEAL }} />
+            <MapPin className="h-4 w-4 text-[#3A6B4C]" />
             Charlotte, NC
           </span>
           <span className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4" style={{ color: TEAL }} />
+            <CheckCircle className="h-4 w-4 text-[#3A6B4C]" />
             Free Estimates
           </span>
         </div>
@@ -139,7 +140,12 @@ export function LandingContent() {
 
       {/* ── Services Grid ── */}
       <section className="max-w-5xl mx-auto px-4 py-16">
-        <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">
+        <div className="flex items-center justify-center gap-3 mb-3">
+          <div className="h-px w-8 bg-[#C8973E]/50" />
+          <span className="text-xs font-semibold uppercase tracking-widest text-[#C8973E]">What We Do</span>
+          <div className="h-px w-8 bg-[#C8973E]/50" />
+        </div>
+        <h2 style={{ fontFamily: FONTS.display }} className="text-2xl md:text-3xl font-bold text-center mb-10 text-[#2B2B2B]">
           Our Services
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -148,11 +154,11 @@ export function LandingContent() {
             return (
               <div
                 key={svc.name}
-                className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition-colors"
+                className="bg-[#F5F0E1]/60 border border-[#3A6B4C]/10 rounded-xl p-5 hover:border-[#3A6B4C]/25 transition-colors"
               >
-                <Icon className="h-8 w-8 mb-3" style={{ color: TEAL }} />
-                <h3 className="font-semibold text-base mb-1">{svc.name}</h3>
-                <p className="text-sm text-zinc-400">{svc.description}</p>
+                <Icon className="h-8 w-8 mb-3 text-[#3A6B4C]" />
+                <h3 className="font-semibold text-base mb-1 text-[#2B2B2B]">{svc.name}</h3>
+                <p className="text-sm text-[#2B2B2B]/60">{svc.description}</p>
               </div>
             )
           })}
@@ -160,29 +166,34 @@ export function LandingContent() {
       </section>
 
       {/* ── Reviews ── */}
-      <section className="bg-zinc-900/40 border-y border-zinc-800">
+      <section className="bg-[#F5F0E1]/40 border-y border-[#3A6B4C]/10">
         <div className="max-w-5xl mx-auto px-4 py-16">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <div className="h-px w-8 bg-[#C8973E]/50" />
+            <span className="text-xs font-semibold uppercase tracking-widest text-[#C8973E]">Testimonials</span>
+            <div className="h-px w-8 bg-[#C8973E]/50" />
+          </div>
+          <h2 style={{ fontFamily: FONTS.display }} className="text-2xl md:text-3xl font-bold text-center mb-10 text-[#2B2B2B]">
             What Our Customers Say
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {REVIEWS.map((r) => (
               <div
                 key={r.name}
-                className="bg-zinc-900 border border-zinc-800 rounded-xl p-5"
+                className="bg-white border border-[#3A6B4C]/10 rounded-xl p-5"
               >
                 <div className="flex gap-0.5 mb-3">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star
                       key={i}
-                      className="h-4 w-4 fill-yellow-500 text-yellow-500"
+                      className="h-4 w-4 fill-[#C8973E] text-[#C8973E]"
                     />
                   ))}
                 </div>
-                <p className="text-sm text-zinc-300 mb-3 leading-relaxed">
+                <p className="text-sm text-[#2B2B2B]/80 mb-3 leading-relaxed">
                   &ldquo;{r.text}&rdquo;
                 </p>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-[#2B2B2B]/40">
                   {r.name} &middot; {r.neighborhood}
                 </p>
               </div>
@@ -193,24 +204,29 @@ export function LandingContent() {
 
       {/* ── Multi-Step Quote Form ── */}
       <section id="get-quote" className="max-w-xl mx-auto px-4 py-16">
-        <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">
+        <div className="flex items-center justify-center gap-3 mb-3">
+          <div className="h-px w-8 bg-[#C8973E]/50" />
+          <span className="text-xs font-semibold uppercase tracking-widest text-[#C8973E]">Free Estimate</span>
+          <div className="h-px w-8 bg-[#C8973E]/50" />
+        </div>
+        <h2 style={{ fontFamily: FONTS.display }} className="text-2xl md:text-3xl font-bold text-center mb-2 text-[#2B2B2B]">
           Get Your Free Quote
         </h2>
-        <p className="text-zinc-400 text-center mb-8">
+        <p className="text-[#2B2B2B]/50 text-center mb-8">
           Takes less than 60 seconds.
         </p>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 md:p-8">
+        <div className="bg-white border border-[#3A6B4C]/10 rounded-xl p-6 md:p-8 shadow-sm">
           {/* Progress bar */}
           {!submitted && (
             <div className="mb-6">
-              <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-[#F5F0E1] rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%`, backgroundColor: TEAL }}
+                  className="h-full rounded-full transition-all duration-300 bg-[#3A6B4C]"
+                  style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-xs text-zinc-500 mt-2 text-center">
+              <p className="text-xs text-[#2B2B2B]/40 mt-2 text-center">
                 Step {step} of {totalSteps}
               </p>
             </div>
@@ -219,9 +235,9 @@ export function LandingContent() {
           {submitted ? (
             /* ── Confirmation ── */
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-[#3A6B4C]/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg
-                  className="w-8 h-8 text-green-500"
+                  className="w-8 h-8 text-[#3A6B4C]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -234,18 +250,18 @@ export function LandingContent() {
                   />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold mb-2">You&apos;re All Set!</h3>
-              <p className="text-zinc-400">
+              <h3 style={{ fontFamily: FONTS.display }} className="text-xl font-semibold mb-2 text-[#2B2B2B]">You&apos;re All Set!</h3>
+              <p className="text-[#2B2B2B]/60">
                 We&apos;ll call you within 2 hours to discuss your project.
               </p>
             </div>
           ) : step === 1 ? (
             /* ── Step 1: Service ── */
             <div>
-              <h3 className="text-lg font-semibold mb-1 text-center">
+              <h3 style={{ fontFamily: FONTS.display }} className="text-lg font-semibold mb-1 text-center text-[#2B2B2B]">
                 What do you need cleaned?
               </h3>
-              <p className="text-sm text-zinc-500 mb-5 text-center">
+              <p className="text-sm text-[#2B2B2B]/40 mb-5 text-center">
                 Select one to continue.
               </p>
               <div className="grid grid-cols-2 gap-3">
@@ -256,7 +272,7 @@ export function LandingContent() {
                       setSelectedService(svc)
                       setStep(2)
                     }}
-                    className="py-3 px-4 rounded-lg border border-zinc-700 bg-zinc-800 hover:border-zinc-500 transition-colors text-sm font-medium text-left"
+                    className="py-3 px-4 rounded-lg border border-[#3A6B4C]/15 bg-[#F5F0E1]/40 hover:border-[#3A6B4C]/40 hover:bg-[#F5F0E1] transition-colors text-sm font-medium text-left text-[#2B2B2B]"
                   >
                     {svc}
                   </button>
@@ -266,10 +282,10 @@ export function LandingContent() {
           ) : step === 2 ? (
             /* ── Step 2: Property Type ── */
             <div>
-              <h3 className="text-lg font-semibold mb-1 text-center">
+              <h3 style={{ fontFamily: FONTS.display }} className="text-lg font-semibold mb-1 text-center text-[#2B2B2B]">
                 What type of property?
               </h3>
-              <p className="text-sm text-zinc-500 mb-5 text-center">
+              <p className="text-sm text-[#2B2B2B]/40 mb-5 text-center">
                 Helps us give you an accurate quote.
               </p>
               <div className="grid grid-cols-2 gap-3">
@@ -280,7 +296,7 @@ export function LandingContent() {
                       setPropertyType(pt)
                       setStep(3)
                     }}
-                    className="py-3 px-4 rounded-lg border border-zinc-700 bg-zinc-800 hover:border-zinc-500 transition-colors text-sm font-medium text-left"
+                    className="py-3 px-4 rounded-lg border border-[#3A6B4C]/15 bg-[#F5F0E1]/40 hover:border-[#3A6B4C]/40 hover:bg-[#F5F0E1] transition-colors text-sm font-medium text-left text-[#2B2B2B]"
                   >
                     {pt}
                   </button>
@@ -288,7 +304,7 @@ export function LandingContent() {
               </div>
               <button
                 onClick={() => setStep(1)}
-                className="mt-4 text-zinc-500 hover:text-white text-sm"
+                className="mt-4 text-[#2B2B2B]/40 hover:text-[#3A6B4C] text-sm transition-colors"
               >
                 &larr; Back
               </button>
@@ -296,10 +312,10 @@ export function LandingContent() {
           ) : step === 3 ? (
             /* ── Step 3: Timeline ── */
             <div>
-              <h3 className="text-lg font-semibold mb-1 text-center">
+              <h3 style={{ fontFamily: FONTS.display }} className="text-lg font-semibold mb-1 text-center text-[#2B2B2B]">
                 When do you need this done?
               </h3>
-              <p className="text-sm text-zinc-500 mb-5 text-center">
+              <p className="text-sm text-[#2B2B2B]/40 mb-5 text-center">
                 No commitment — just helps us plan.
               </p>
               <div className="grid grid-cols-2 gap-3">
@@ -310,7 +326,7 @@ export function LandingContent() {
                       setTimeline(tl)
                       setStep(4)
                     }}
-                    className="py-3 px-4 rounded-lg border border-zinc-700 bg-zinc-800 hover:border-zinc-500 transition-colors text-sm font-medium text-left"
+                    className="py-3 px-4 rounded-lg border border-[#3A6B4C]/15 bg-[#F5F0E1]/40 hover:border-[#3A6B4C]/40 hover:bg-[#F5F0E1] transition-colors text-sm font-medium text-left text-[#2B2B2B]"
                   >
                     {tl}
                   </button>
@@ -318,7 +334,7 @@ export function LandingContent() {
               </div>
               <button
                 onClick={() => setStep(2)}
-                className="mt-4 text-zinc-500 hover:text-white text-sm"
+                className="mt-4 text-[#2B2B2B]/40 hover:text-[#3A6B4C] text-sm transition-colors"
               >
                 &larr; Back
               </button>
@@ -326,58 +342,58 @@ export function LandingContent() {
           ) : (
             /* ── Step 4: Contact Info ── */
             <div>
-              <h3 className="text-lg font-semibold mb-1 text-center">
+              <h3 style={{ fontFamily: FONTS.display }} className="text-lg font-semibold mb-1 text-center text-[#2B2B2B]">
                 Where should we send your quote?
               </h3>
-              <p className="text-sm text-zinc-500 mb-5 text-center">
+              <p className="text-sm text-[#2B2B2B]/40 mb-5 text-center">
                 We&apos;ll call you — no spam, ever.
               </p>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    Name <span className="text-red-400">*</span>
+                  <label className="block text-sm font-medium mb-1.5 text-[#2B2B2B]">
+                    Name <span className="text-[#B8453A]">*</span>
                   </label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-[oklch(0.5_0.18_210)] text-sm"
+                    className="w-full px-4 py-3 bg-[#F5F0E1]/40 border border-[#3A6B4C]/15 rounded-lg focus:outline-none focus:border-[#3A6B4C] text-sm text-[#2B2B2B] placeholder:text-[#2B2B2B]/30"
                     placeholder="John Smith"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    Phone <span className="text-red-400">*</span>
+                  <label className="block text-sm font-medium mb-1.5 text-[#2B2B2B]">
+                    Phone <span className="text-[#B8453A]">*</span>
                   </label>
                   <input
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-[oklch(0.5_0.18_210)] text-sm"
+                    className="w-full px-4 py-3 bg-[#F5F0E1]/40 border border-[#3A6B4C]/15 rounded-lg focus:outline-none focus:border-[#3A6B4C] text-sm text-[#2B2B2B] placeholder:text-[#2B2B2B]/30"
                     placeholder="(704) 555-1234"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    Email <span className="text-zinc-600">(optional)</span>
+                  <label className="block text-sm font-medium mb-1.5 text-[#2B2B2B]">
+                    Email <span className="text-[#2B2B2B]/30">(optional)</span>
                   </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-[oklch(0.5_0.18_210)] text-sm"
+                    className="w-full px-4 py-3 bg-[#F5F0E1]/40 border border-[#3A6B4C]/15 rounded-lg focus:outline-none focus:border-[#3A6B4C] text-sm text-[#2B2B2B] placeholder:text-[#2B2B2B]/30"
                     placeholder="john@email.com"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    Address or Zip <span className="text-red-400">*</span>
+                  <label className="block text-sm font-medium mb-1.5 text-[#2B2B2B]">
+                    Address or Zip <span className="text-[#B8453A]">*</span>
                   </label>
                   <input
                     type="text"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg focus:outline-none focus:border-[oklch(0.5_0.18_210)] text-sm"
+                    className="w-full px-4 py-3 bg-[#F5F0E1]/40 border border-[#3A6B4C]/15 rounded-lg focus:outline-none focus:border-[#3A6B4C] text-sm text-[#2B2B2B] placeholder:text-[#2B2B2B]/30"
                     placeholder="123 Main St, Charlotte NC or 28214"
                   />
                 </div>
@@ -386,27 +402,14 @@ export function LandingContent() {
                   disabled={
                     !name.trim() || !phone.trim() || !address.trim() || loading
                   }
-                  className="w-full font-semibold py-3.5 rounded-lg transition-colors text-white disabled:bg-zinc-700 disabled:cursor-not-allowed"
-                  style={
-                    !name.trim() || !phone.trim() || !address.trim() || loading
-                      ? undefined
-                      : { backgroundColor: TEAL }
-                  }
-                  onMouseOver={(e) => {
-                    if (!e.currentTarget.disabled)
-                      e.currentTarget.style.backgroundColor = TEAL_HOVER
-                  }}
-                  onMouseOut={(e) => {
-                    if (!e.currentTarget.disabled)
-                      e.currentTarget.style.backgroundColor = TEAL
-                  }}
+                  className="w-full font-semibold py-3.5 rounded-lg transition-colors text-[#F5F0E1] bg-[#3A6B4C] hover:bg-[#2F5A3F] disabled:bg-[#2B2B2B]/20 disabled:text-[#2B2B2B]/40 disabled:cursor-not-allowed"
                 >
                   {loading ? "Sending..." : "Get My Free Quote"}
                 </button>
               </div>
               <button
                 onClick={() => setStep(3)}
-                className="mt-4 text-zinc-500 hover:text-white text-sm"
+                className="mt-4 text-[#2B2B2B]/40 hover:text-[#3A6B4C] text-sm transition-colors"
               >
                 &larr; Back
               </button>
@@ -416,16 +419,16 @@ export function LandingContent() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-zinc-800 py-6 px-4">
-        <div className="max-w-4xl mx-auto text-center text-zinc-500 text-sm space-y-1">
-          <p>Dr. Squeegee LLC</p>
-          <p>8623 Longnor St, Charlotte, NC 28214</p>
+      <footer className="border-t border-[#3A6B4C]/10 py-6 px-4 bg-[#F5F0E1]/30">
+        <div className="max-w-4xl mx-auto text-center text-[#2B2B2B]/40 text-sm space-y-1">
+          <p style={{ fontFamily: FONTS.display }} className="font-bold text-[#2B2B2B]/60">{BRAND.entity}</p>
+          <p>{BRAND.address}</p>
           <p>
             <a
-              href="tel:+19802428048"
-              className="hover:text-white transition-colors"
+              href={`tel:${BRAND.phoneTel}`}
+              className="hover:text-[#3A6B4C] transition-colors"
             >
-              (980) 242-8048
+              {BRAND.phone}
             </a>
           </p>
         </div>

@@ -182,7 +182,7 @@ export function QuoteBuilder({ job }: Props) {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-[oklch(0.5_0.18_210)]" />
+          <FileText className="h-4 w-4 text-[#3A6B4C]" />
           <CardTitle className="text-base">Send Quote</CardTitle>
         </div>
       </CardHeader>
@@ -200,7 +200,7 @@ export function QuoteBuilder({ job }: Props) {
                     type="checkbox"
                     checked={!!selected[service]}
                     onChange={() => toggleService(service)}
-                    className="h-4 w-4 rounded border-border accent-[oklch(0.5_0.18_210)]"
+                    className="h-4 w-4 rounded border-border accent-[#3A6B4C]"
                   />
                   <div>
                     <span className="text-sm font-medium">{service}</span>
@@ -252,7 +252,7 @@ export function QuoteBuilder({ job }: Props) {
         <Button
           onClick={handleGenerate}
           disabled={!canGenerate || loading}
-          className="w-full h-12 bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white text-sm font-medium"
+          className="w-full h-12 bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white text-sm font-medium"
         >
           {loading ? (
             <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating…</>
@@ -308,7 +308,7 @@ export function QuoteBuilder({ job }: Props) {
                       href={`https://drsqueegeeclt.com/q/${q.token}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-mono text-[oklch(0.5_0.18_210)] hover:underline truncate"
+                      className="font-mono text-[#3A6B4C] hover:underline truncate"
                     >
                       /q/{q.token}
                     </a>

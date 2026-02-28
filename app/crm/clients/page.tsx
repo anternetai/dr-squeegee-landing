@@ -47,7 +47,7 @@ export default async function ClientsPage() {
             {clientsWithCounts.length} client{clientsWithCounts.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <Button asChild className="bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white">
+        <Button asChild className="bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white">
           <Link href="/crm/clients/new">
             <Plus className="h-4 w-4 mr-2" />
             New Client
@@ -62,7 +62,7 @@ export default async function ClientsPage() {
             <Users className="h-12 w-12 mx-auto mb-4 opacity-25" />
             <p className="font-medium mb-1">No clients yet</p>
             <p className="text-sm mb-5">Add your first client to start tracking jobs and invoices.</p>
-            <Button asChild className="bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white">
+            <Button asChild className="bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white">
               <Link href="/crm/clients/new">
                 <Plus className="h-4 w-4 mr-2" />
                 New Client
@@ -93,7 +93,7 @@ export default async function ClientsPage() {
                         className="hover:bg-muted/40 transition-colors cursor-pointer"
                       >
                         <td className="px-4 py-3">
-                          <Link href={`/crm/clients/${client.id}`} className="block font-medium hover:text-[oklch(0.5_0.18_210)]">
+                          <Link href={`/crm/clients/${client.id}`} className="block font-medium hover:text-[#3A6B4C]">
                             {client.name}
                           </Link>
                         </td>
@@ -114,7 +114,7 @@ export default async function ClientsPage() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <Link href={`/crm/clients/${client.id}`} className="block">
-                            <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full text-xs font-semibold bg-[oklch(0.93_0.07_210)] text-[oklch(0.3_0.15_210)] dark:bg-[oklch(0.25_0.07_210)] dark:text-[oklch(0.85_0.1_210)]">
+                            <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full text-xs font-semibold bg-[#E8F0EA] text-[#1E3E2B] dark:bg-[#1A2E21] dark:text-[#A8C4B0]">
                               {client.job_count}
                             </span>
                           </Link>
@@ -135,7 +135,7 @@ export default async function ClientsPage() {
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-semibold">{client.name}</p>
-                      <span className="shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold bg-[oklch(0.93_0.07_210)] text-[oklch(0.3_0.15_210)] dark:bg-[oklch(0.25_0.07_210)] dark:text-[oklch(0.85_0.1_210)]">
+                      <span className="shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold bg-[#E8F0EA] text-[#1E3E2B] dark:bg-[#1A2E21] dark:text-[#A8C4B0]">
                         {client.job_count} job{client.job_count !== 1 ? "s" : ""}
                       </span>
                     </div>

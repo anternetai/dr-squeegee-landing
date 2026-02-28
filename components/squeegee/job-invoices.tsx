@@ -164,7 +164,7 @@ export function JobInvoices({ job }: Props) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-[oklch(0.5_0.18_210)]" />
+            <FileText className="h-4 w-4 text-[#3A6B4C]" />
             <CardTitle className="text-base">
               Invoices
               {invoices.length > 0 && (
@@ -178,7 +178,7 @@ export function JobInvoices({ job }: Props) {
             <Button
               size="sm"
               onClick={() => setShowForm(true)}
-              className="bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white"
+              className="bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               Create Invoice
@@ -252,7 +252,7 @@ export function JobInvoices({ job }: Props) {
                   type="submit"
                   size="sm"
                   disabled={submitting}
-                  className="bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white"
+                  className="bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white"
                 >
                   {submitting && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
                   Create Invoice

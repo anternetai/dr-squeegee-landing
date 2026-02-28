@@ -35,7 +35,7 @@ const STATUS_COLORS: Record<JobStatus, string> = {
   new: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800",
   quoted: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800",
   approved: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800",
-  scheduled: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300 border-teal-200 dark:border-teal-800",
+  scheduled: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
   complete: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800",
 }
 
@@ -221,7 +221,7 @@ export function JobDetailClient({ job: initialJob }: Props) {
                 size="sm"
                 onClick={advanceStatus}
                 disabled={updatingStatus}
-                className="bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white"
+                className="bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white"
               >
                 {updatingStatus && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
                 Mark as {STATUS_LABELS[nextStatus]}
@@ -242,7 +242,7 @@ export function JobDetailClient({ job: initialJob }: Props) {
                   size="sm"
                   onClick={saveEdit}
                   disabled={savingEdit}
-                  className="bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white"
+                  className="bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white"
                 >
                   {savingEdit ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
                   Save
@@ -367,7 +367,7 @@ export function JobDetailClient({ job: initialJob }: Props) {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-[oklch(0.5_0.18_210)]" />
+            <MessageSquare className="h-4 w-4 text-[#3A6B4C]" />
             <CardTitle className="text-base">Quote Message</CardTitle>
           </div>
         </CardHeader>
@@ -383,7 +383,7 @@ export function JobDetailClient({ job: initialJob }: Props) {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
-            <CalendarCheck className="h-4 w-4 text-[oklch(0.5_0.18_210)]" />
+            <CalendarCheck className="h-4 w-4 text-[#3A6B4C]" />
             <CardTitle className="text-base">Appointment Confirmation</CardTitle>
           </div>
         </CardHeader>
@@ -429,7 +429,7 @@ function InfoRow({
             href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(value)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-[oklch(0.5_0.18_210)] hover:underline"
+            className="text-sm text-[#3A6B4C] hover:underline"
           >
             {value}
           </a>
@@ -501,7 +501,7 @@ function AppointmentQuickEdit({
             disabled={saving}
             size="sm"
             className={cn(
-              "bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white",
+              "bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white",
               saved && "bg-green-600 hover:bg-green-600"
             )}
           >

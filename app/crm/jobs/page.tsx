@@ -10,7 +10,7 @@ const STATUS_COLORS: Record<JobStatus, string> = {
   new: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   quoted: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
   approved: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-  scheduled: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
+  scheduled: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
   complete: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
 }
 
@@ -45,7 +45,7 @@ export default async function JobsPage({ searchParams }: PageProps) {
             {status ? ` · ${STATUS_LABELS[status as JobStatus]}` : ""}
           </p>
         </div>
-        <Button asChild className="bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white">
+        <Button asChild className="bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white">
           <Link href="/crm/jobs/new">
             <Plus className="h-4 w-4 mr-2" />
             New Job
@@ -62,7 +62,7 @@ export default async function JobsPage({ searchParams }: PageProps) {
           <CardContent className="py-12 text-center text-muted-foreground">
             <Briefcase className="h-10 w-10 mx-auto mb-3 opacity-30" />
             <p className="text-sm">No jobs found{status ? ` with status "${STATUS_LABELS[status as JobStatus]}"` : ""}.</p>
-            <Button asChild className="mt-4 bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white">
+            <Button asChild className="mt-4 bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white">
               <Link href="/crm/jobs/new">
                 <Plus className="h-4 w-4 mr-2" />
                 New Job

@@ -105,7 +105,7 @@ export default async function CalendarPage() {
               key={dateStr}
               className={`rounded-lg border ${
                 today_
-                  ? "border-[oklch(0.5_0.18_210)] bg-[oklch(0.96_0.04_210)] dark:bg-[oklch(0.18_0.06_210)]"
+                  ? "border-[#3A6B4C] bg-[#F2F7F3] dark:bg-[#121E16]"
                   : "border-border bg-card"
               } flex flex-col min-h-[80px] overflow-hidden`}
             >
@@ -113,7 +113,7 @@ export default async function CalendarPage() {
               <div
                 className={`px-2 py-1.5 text-xs font-semibold ${
                   today_
-                    ? "text-[oklch(0.5_0.18_210)] bg-[oklch(0.93_0.07_210)] dark:bg-[oklch(0.22_0.08_210)]"
+                    ? "text-[#3A6B4C] bg-[#E8F0EA] dark:bg-[#182A1E]"
                     : "text-muted-foreground bg-muted/40"
                 }`}
               >
@@ -134,14 +134,14 @@ export default async function CalendarPage() {
                     <Link
                       key={job.id}
                       href={`/crm/jobs/${job.id}`}
-                      className="block rounded-md bg-[oklch(0.5_0.18_210)]/10 hover:bg-[oklch(0.5_0.18_210)]/20 border border-[oklch(0.5_0.18_210)]/20 px-2 py-1.5 transition-colors group"
+                      className="block rounded-md bg-[#3A6B4C]/10 hover:bg-[#3A6B4C]/20 border border-[#3A6B4C]/20 px-2 py-1.5 transition-colors group"
                     >
-                      <p className="text-xs font-semibold text-[oklch(0.35_0.15_210)] dark:text-[oklch(0.8_0.1_210)] truncate group-hover:underline">
+                      <p className="text-xs font-semibold text-[#234A32] dark:text-[#A8C4B0] truncate group-hover:underline">
                         {job.client_name}
                       </p>
                       <p className="text-[11px] text-muted-foreground truncate">{job.service_type}</p>
                       {job.appointment_time && (
-                        <p className="text-[11px] text-[oklch(0.5_0.18_210)] font-medium">
+                        <p className="text-[11px] text-[#3A6B4C] font-medium">
                           {formatTime(job.appointment_time)}
                         </p>
                       )}
@@ -159,7 +159,7 @@ export default async function CalendarPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-[oklch(0.5_0.18_210)]" />
+              <CalendarDays className="h-4 w-4 text-[#3A6B4C]" />
               Upcoming This Month
             </CardTitle>
           </CardHeader>
@@ -200,7 +200,7 @@ export default async function CalendarPage() {
                     </div>
                     <div className="shrink-0 ml-3 text-right">
                       {job.appointment_time && (
-                        <p className="text-sm text-[oklch(0.5_0.18_210)] font-medium flex items-center gap-1">
+                        <p className="text-sm text-[#3A6B4C] font-medium flex items-center gap-1">
                           <Clock className="h-3.5 w-3.5" />
                           {formatTime(job.appointment_time)}
                         </p>
@@ -222,7 +222,7 @@ export default async function CalendarPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-[oklch(0.5_0.18_210)]" />
+              <CalendarDays className="h-4 w-4 text-[#3A6B4C]" />
               After This Week
             </CardTitle>
           </CardHeader>
@@ -249,7 +249,7 @@ export default async function CalendarPage() {
                     </div>
                   </div>
                   {job.appointment_time && (
-                    <p className="text-sm text-[oklch(0.5_0.18_210)] font-medium flex items-center gap-1 shrink-0 ml-3">
+                    <p className="text-sm text-[#3A6B4C] font-medium flex items-center gap-1 shrink-0 ml-3">
                       <Clock className="h-3.5 w-3.5" />
                       {formatTime(job.appointment_time)}
                     </p>

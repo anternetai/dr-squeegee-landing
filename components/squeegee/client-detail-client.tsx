@@ -39,7 +39,7 @@ function InfoRow({
             href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(value)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-[oklch(0.5_0.18_210)] hover:underline"
+            className="text-sm text-[#3A6B4C] hover:underline"
           >
             {value}
           </a>
@@ -122,7 +122,7 @@ export function ClientDetailClient({ client: initialClient }: Props) {
                 size="sm"
                 onClick={saveEdit}
                 disabled={saving}
-                className="bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white"
+                className="bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white"
               >
                 {saving ? (
                   <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
@@ -220,7 +220,7 @@ export function ClientDetailClient({ client: initialClient }: Props) {
           {!client.phone && !client.email && !client.address && !client.notes && (
             <p className="sm:col-span-2 text-sm text-muted-foreground italic">
               No details saved yet.{" "}
-              <button onClick={startEdit} className="underline text-[oklch(0.5_0.18_210)]">
+              <button onClick={startEdit} className="underline text-[#3A6B4C]">
                 Add some
               </button>
             </p>

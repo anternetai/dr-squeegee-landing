@@ -172,7 +172,7 @@ export function NewJobForm({ client }: Props) {
             <Button
               type="submit"
               disabled={loading}
-              className="bg-[oklch(0.5_0.18_210)] hover:bg-[oklch(0.45_0.18_210)] text-white"
+              className="bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white"
             >
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Create Job

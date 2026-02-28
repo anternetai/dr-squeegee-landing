@@ -17,7 +17,7 @@ export function JobsFilterBar({ activeStatus }: JobsFilterBarProps) {
         className={cn(
           "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
           !activeStatus
-            ? "bg-[oklch(0.5_0.18_210)] text-white"
+            ? "bg-[#3A6B4C] text-white"
             : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
         )}
       >
@@ -30,7 +30,7 @@ export function JobsFilterBar({ activeStatus }: JobsFilterBarProps) {
           className={cn(
             "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
             activeStatus === status
-              ? "bg-[oklch(0.5_0.18_210)] text-white"
+              ? "bg-[#3A6B4C] text-white"
               : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
           )}
         >

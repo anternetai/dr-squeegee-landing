@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
-import { Droplets, LayoutDashboard, Briefcase, Users, CalendarDays, FileText, Sun, Moon, LogOut } from "lucide-react"
+import { LayoutDashboard, Briefcase, Users, CalendarDays, FileText, Sun, Moon, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 
@@ -36,10 +36,14 @@ export function SqueegeeNav() {
           {/* Brand */}
           <Link
             href="/crm"
-            className="flex items-center gap-2 font-bold text-[oklch(0.55_0.18_210)] shrink-0"
+            className="flex items-center gap-2 shrink-0"
           >
-            <Droplets className="h-5 w-5" />
-            <span className="hidden sm:inline">Dr. Squeegee</span>
+            <span
+              className="font-bold text-[#3A6B4C]"
+              style={{ fontFamily: "var(--font-brand-display), serif" }}
+            >
+              Dr. Squeegee
+            </span>
           </Link>
 
           {/* Nav — scrollable on mobile */}
@@ -57,7 +61,7 @@ export function SqueegeeNav() {
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap shrink-0",
                     isActive
-                      ? "bg-[oklch(0.93_0.07_210)] text-[oklch(0.3_0.15_210)] dark:bg-[oklch(0.25_0.07_210)] dark:text-[oklch(0.85_0.1_210)]"
+                      ? "bg-[#E8F0EA] text-[#1E3E2B] dark:bg-[#1A2E21] dark:text-[#A8C4B0]"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >
