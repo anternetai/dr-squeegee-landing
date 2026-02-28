@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const admin = getAdmin()
   const url = new URL(req.url)
   const forceTimezone = url.searchParams.get("timezone") as DialerTimezone | null
-  const limit = parseInt(url.searchParams.get("limit") || "50")
+  const limit = parseInt(url.searchParams.get("limit") || "500")
 
   const etHour = getCurrentETHour()
   const currentTimezone = forceTimezone || getTimezoneForHour(etHour)
@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
 
   const today = new Date().toISOString().split("T")[0]
   const now = new Date().toISOString()
+  const todayStart = `${today}T00:00:00.000Z`
 
   // 1. Get callbacks due now or overdue
   const { data: callbacks } = await admin
@@ -47,12 +48,14 @@ export async function GET(req: NextRequest) {
     .limit(20)
 
   // 2. Get queued leads for current timezone
+  // Filter out leads already called today — forces queue to progress
   let queueQuery = admin
     .from("dialer_leads")
     .select("*")
     .eq("status", "queued")
     .lt("attempt_count", 5)
     .or(`next_call_at.is.null,next_call_at.lte.${now}`)
+    .or(`last_called_at.is.null,last_called_at.lt.${todayStart}`)
     .order("attempt_count", { ascending: true })
     .order("created_at", { ascending: true })
     .limit(limit)

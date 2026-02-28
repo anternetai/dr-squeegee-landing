@@ -178,10 +178,36 @@ function formatDuration(ms: number): string {
 }
 
 async function fetchQueue(): Promise<DialerQueueResponse> {
-  const res = await fetch("/api/portal/dialer/queue?limit=100")
+  const res = await fetch("/api/portal/dialer/queue?limit=500")
   if (!res.ok) throw new Error("Failed to fetch queue")
   return res.json()
 }
+
+// ─── Queue Position Persistence ─────────────────────────────────────────────────
+// Saves/restores the current position per timezone so the queue doesn't reset
+// to lead #1 on every page load or session start.
+
+const POSITION_KEY = "dialer-queue-position"
+
+function saveQueuePosition(timezone: string, index: number) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(POSITION_KEY) || "{}")
+    saved[timezone] = { index, updatedAt: new Date().toISOString() }
+    localStorage.setItem(POSITION_KEY, JSON.stringify(saved))
+  } catch {}
+}
+
+function loadQueuePosition(timezone: string, maxIndex: number): number {
+  try {
+    const saved = JSON.parse(localStorage.getItem(POSITION_KEY) || "{}")
+    const pos = saved[timezone]?.index
+    if (typeof pos === "number" && pos > 0 && pos < maxIndex) {
+      return pos
+    }
+  } catch {}
+  return 0
+}
+
 
 // ─── Recording Hook ────────────────────────────────────────────────────────────
 
@@ -393,6 +419,8 @@ export function CallCockpit() {
   })
 
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [positionRestored, setPositionRestored] = useState(false)
+  const [trackedTimezone, setTrackedTimezone] = useState<string | null>(null)
   const [notes, setNotes] = useState("")
   const [liveNotes, setLiveNotes] = useState("")
   const [demoDate, setDemoDate] = useState("")
@@ -519,6 +547,33 @@ export function CallCockpit() {
   useEffect(() => {
     if (leads.length > 0 && currentIndex >= leads.length) setCurrentIndex(0)
   }, [leads.length, currentIndex])
+
+  // Restore queue position from localStorage on first load
+  useEffect(() => {
+    if (!positionRestored && queue?.currentTimezone && leads.length > 0) {
+      const saved = loadQueuePosition(queue.currentTimezone, leads.length)
+      if (saved > 0) setCurrentIndex(saved)
+      setTrackedTimezone(queue.currentTimezone)
+      setPositionRestored(true)
+    }
+  }, [positionRestored, queue?.currentTimezone, leads.length])
+
+  // Handle timezone transitions (save old position, load new one)
+  useEffect(() => {
+    if (queue?.currentTimezone && trackedTimezone && queue.currentTimezone !== trackedTimezone) {
+      saveQueuePosition(trackedTimezone, currentIndex)
+      const saved = loadQueuePosition(queue.currentTimezone, leads.length)
+      setCurrentIndex(saved)
+      setTrackedTimezone(queue.currentTimezone)
+    }
+  }, [queue?.currentTimezone, trackedTimezone, currentIndex, leads.length])
+
+  // Persist position whenever it changes
+  useEffect(() => {
+    if (queue?.currentTimezone && positionRestored) {
+      saveQueuePosition(queue.currentTimezone, currentIndex)
+    }
+  }, [currentIndex, queue?.currentTimezone, positionRestored])
 
   // Global keyboard shortcuts
   useEffect(() => {
