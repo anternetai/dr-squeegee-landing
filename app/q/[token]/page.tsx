@@ -36,7 +36,13 @@ function getAdmin() {
 export const metadata: Metadata = {
   title: 'Your Quote – Dr. Squeegee',
   description: 'Professional house washing service quote from Dr. Squeegee — House Calls for a Cleaner Home.',
-  icons: { icon: '/favicon-squeegee.svg' },
+  icons: {
+    icon: [
+      { url: '/favicon-squeegee.svg', type: 'image/svg+xml' },
+      { url: '/favicon-squeegee-32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon-squeegee.png',
+  },
   openGraph: {
     title: 'Dr. Squeegee — Your Service Quote',
     description: 'House Calls for a Cleaner Home. Professional pressure washing in Charlotte, NC.',

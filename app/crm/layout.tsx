@@ -5,7 +5,13 @@ import { SqueegeeNav } from "@/components/squeegee/squeegee-nav"
 export const metadata: Metadata = {
   title: "Dr. Squeegee | CRM",
   description: "Internal job management portal for Dr. Squeegee — House Calls for a Cleaner Home.",
-  icons: { icon: "/favicon-squeegee.svg" },
+  icons: {
+    icon: [
+      { url: "/favicon-squeegee.svg", type: "image/svg+xml" },
+      { url: "/favicon-squeegee-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon-squeegee.png",
+  },
   openGraph: {
     title: "Dr. Squeegee",
     description: "House Calls for a Cleaner Home",

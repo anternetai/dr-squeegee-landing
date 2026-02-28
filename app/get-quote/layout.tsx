@@ -4,7 +4,13 @@ export const metadata: Metadata = {
   title: "Dr. Squeegee | House Calls for a Cleaner Home",
   description:
     "Charlotte's trusted pressure washing specialist. House washing, driveways, patios — done right, every time. Get your free quote today.",
-  icons: { icon: "/favicon-squeegee.svg" },
+  icons: {
+    icon: [
+      { url: "/favicon-squeegee.svg", type: "image/svg+xml" },
+      { url: "/favicon-squeegee-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon-squeegee.png",
+  },
   openGraph: {
     title: "Dr. Squeegee — House Calls for a Cleaner Home",
     description:
