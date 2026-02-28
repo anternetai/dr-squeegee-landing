@@ -32,6 +32,44 @@ const VIDEOS = [
   },
 ]
 
+function HeroVideo() {
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          video.play().catch(() => {})
+        } else {
+          video.pause()
+        }
+      },
+      { threshold: 0.4 }
+    )
+    observer.observe(video)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <section className="max-w-sm mx-auto px-4 py-10">
+      <div className="rounded-xl overflow-hidden border border-[#3A6B4C]/10 bg-white shadow-sm">
+        <video
+          ref={videoRef}
+          className="w-full aspect-[9/16] object-cover"
+          playsInline
+          muted
+          loop
+          preload="metadata"
+        >
+          <source src="/videos/squeegee/house-washing.mp4" type="video/mp4" />
+        </video>
+      </div>
+    </section>
+  )
+}
+
 function VideoShowcase() {
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
 
@@ -211,6 +249,9 @@ export function LandingContent() {
           </span>
         </div>
       </section>
+
+      {/* ── Hero Video ── */}
+      <HeroVideo />
 
       {/* ── Services Grid ── */}
       <section className="max-w-5xl mx-auto px-4 py-16">
