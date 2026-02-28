@@ -22,11 +22,13 @@ import { COLORS, BRAND, FONTS } from "@/lib/squeegee/brand"
 const VIDEOS = [
   {
     src: "/videos/squeegee/driveway-cleaning.mp4",
+    poster: "/videos/squeegee/driveway-cleaning-poster.jpg",
     title: "Driveway Cleaning",
     subtitle: "Midwood, Charlotte",
   },
   {
     src: "/videos/squeegee/house-washing.mp4",
+    poster: "/videos/squeegee/house-washing-poster.jpg",
     title: "House Washing",
     subtitle: "Charlotte, NC",
   },
@@ -46,7 +48,7 @@ function HeroVideo() {
           video.pause()
         }
       },
-      { threshold: 0.4 }
+      { threshold: 0.3 }
     )
     observer.observe(video)
     return () => observer.disconnect()
@@ -61,7 +63,8 @@ function HeroVideo() {
           playsInline
           muted
           loop
-          preload="metadata"
+          preload="auto"
+          poster="/videos/squeegee/house-washing-poster.jpg"
         >
           <source src="/videos/squeegee/house-washing.mp4" type="video/mp4" />
         </video>
@@ -115,7 +118,8 @@ function VideoShowcase() {
                 playsInline
                 muted
                 loop
-                preload="metadata"
+                preload="none"
+                poster={v.poster}
               >
                 <source src={v.src} type="video/mp4" />
               </video>
