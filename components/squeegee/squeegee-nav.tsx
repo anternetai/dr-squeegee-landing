@@ -66,7 +66,7 @@ export function SqueegeeNav() {
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >
-                  <Icon className="h-4 w-4" title={item.label} />
+                  <Icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{item.label}</span>
                 </Link>
               )
