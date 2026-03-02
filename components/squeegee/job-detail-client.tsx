@@ -3,14 +3,13 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { SqueegeeJob, STATUS_ORDER, STATUS_LABELS, JobStatus, SERVICE_TYPES } from "@/lib/squeegee/types"
+import { SqueegeeJob, STATUS_ORDER, STATUS_LABELS, JobStatus } from "@/lib/squeegee/types"
 import { formatDate, formatTime } from "@/lib/squeegee/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   ChevronRight,
   Check,
@@ -276,15 +275,6 @@ export function JobDetailClient({ job: initialJob }: Props) {
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Address</Label>
                 <Input value={editForm.address} onChange={(e) => setEditForm((p) => ({ ...p, address: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Service Type</Label>
-                <Select value={editForm.service_type} onValueChange={(v) => setEditForm((p) => ({ ...p, service_type: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {SERVICE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>Price ($)</Label>
