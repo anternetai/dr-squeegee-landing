@@ -20,6 +20,9 @@ export interface SqueegeeQuote {
   client_email: string | null
   address: string
   services: QuoteService[]
+  subtotal: number | null
+  discount_type: 'percent' | 'dollar' | null
+  discount_value: number | null
   total_price: number
   status: 'pending' | 'accepted' | 'declined' | 'help'
   client_response_at: string | null

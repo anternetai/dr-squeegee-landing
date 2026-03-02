@@ -20,13 +20,15 @@ interface CreateQuoteBody {
   client_email?: string
   address: string
   services: QuoteService[]
+  discount_type?: 'percent' | 'dollar' | null
+  discount_value?: number
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as CreateQuoteBody
 
-    const { job_id, client_name, client_phone, client_email, address, services } = body
+    const { job_id, client_name, client_phone, client_email, address, services, discount_type, discount_value } = body
 
     if (!client_name || !address || !services || services.length === 0) {
       return NextResponse.json(
@@ -35,7 +37,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const total_price = services.reduce((sum, s) => sum + Number(s.price), 0)
+    const subtotal = services.reduce((sum, s) => sum + Number(s.price), 0)
+    const discountVal = Number(discount_value) || 0
+    const discountAmount = discount_type === 'percent'
+      ? Math.round(subtotal * (discountVal / 100) * 100) / 100
+      : discountVal
+    const total_price = Math.max(0, subtotal - discountAmount)
 
     const supabase = getAdmin()
 
@@ -48,6 +55,9 @@ export async function POST(request: NextRequest) {
         client_email: client_email ?? null,
         address,
         services,
+        subtotal,
+        discount_type: discount_type ?? null,
+        discount_value: discountVal,
         total_price,
       })
       .select('id, token')

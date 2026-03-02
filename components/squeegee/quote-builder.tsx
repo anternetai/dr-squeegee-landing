@@ -84,6 +84,8 @@ export function QuoteBuilder({ job }: Props) {
   const router = useRouter()
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [prices, setPrices] = useState<Record<string, string>>({})
+  const [discountType, setDiscountType] = useState<"percent" | "dollar">("dollar")
+  const [discountValue, setDiscountValue] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [generatedToken, setGeneratedToken] = useState<string | null>(null)
@@ -110,10 +112,17 @@ export function QuoteBuilder({ job }: Props) {
   }, [fetchPastQuotes])
 
   const selectedServices = QUOTE_SERVICES.filter((s) => selected[s])
-  const total = selectedServices.reduce((sum, s) => {
+  const subtotal = selectedServices.reduce((sum, s) => {
     const p = parseFloat(prices[s] ?? "")
     return sum + (isNaN(p) ? 0 : p)
   }, 0)
+
+  const discountNum = parseFloat(discountValue) || 0
+  const discountAmount =
+    discountType === "percent"
+      ? Math.round(subtotal * (discountNum / 100) * 100) / 100
+      : discountNum
+  const total = Math.max(0, subtotal - discountAmount)
 
   const canGenerate =
     selectedServices.length > 0 &&
@@ -147,6 +156,8 @@ export function QuoteBuilder({ job }: Props) {
           client_email: job.client_email,
           address: job.address,
           services,
+          discount_type: discountAmount > 0 ? discountType : null,
+          discount_value: discountAmount > 0 ? discountNum : 0,
         }),
       })
 
@@ -231,13 +242,78 @@ export function QuoteBuilder({ job }: Props) {
           </div>
         </div>
 
+        {/* Discount */}
+        {selectedServices.length > 0 && (
+          <div className="space-y-2 border-t pt-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Discount (optional)
+            </p>
+            <div className="flex items-center gap-2">
+              <div className="flex rounded-md border overflow-hidden h-8">
+                <button
+                  type="button"
+                  onClick={() => setDiscountType("dollar")}
+                  className={cn(
+                    "px-2.5 text-xs font-medium transition-colors",
+                    discountType === "dollar"
+                      ? "bg-[#3A6B4C] text-white"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  )}
+                >
+                  $
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDiscountType("percent")}
+                  className={cn(
+                    "px-2.5 text-xs font-medium transition-colors",
+                    discountType === "percent"
+                      ? "bg-[#3A6B4C] text-white"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  )}
+                >
+                  %
+                </button>
+              </div>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0"
+                value={discountValue}
+                onChange={(e) => setDiscountValue(e.target.value)}
+                className="h-8 w-24 text-sm"
+              />
+              {discountAmount > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  −${discountAmount.toFixed(2)} off
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Total */}
         {selectedServices.length > 0 && (
-          <div className="flex items-center justify-between border-t pt-3">
-            <span className="text-sm font-semibold">Total</span>
-            <span className="text-base font-bold tabular-nums">
-              ${total.toFixed(2)}
-            </span>
+          <div className="border-t pt-3 space-y-1">
+            {discountAmount > 0 && (
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Subtotal</span>
+                <span className="tabular-nums">${subtotal.toFixed(2)}</span>
+              </div>
+            )}
+            {discountAmount > 0 && (
+              <div className="flex items-center justify-between text-sm text-green-600">
+                <span>Discount ({discountType === "percent" ? `${discountNum}%` : `$${discountNum.toFixed(2)}`})</span>
+                <span className="tabular-nums">−${discountAmount.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold">Total</span>
+              <span className="text-base font-bold tabular-nums">
+                ${total.toFixed(2)}
+              </span>
+            </div>
           </div>
         )}
 

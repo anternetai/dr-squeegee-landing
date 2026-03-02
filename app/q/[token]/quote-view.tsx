@@ -48,6 +48,12 @@ export function QuoteView({ quote: initialQuote }: Props) {
   )
 
   const services = Array.isArray(quote.services) ? quote.services : []
+  const hasDiscount = quote.discount_type && (quote.discount_value ?? 0) > 0
+  const discountVal = Number(quote.discount_value) || 0
+  const subtotal = quote.subtotal ?? services.reduce((sum, s) => sum + Number(s.price), 0)
+  const discountAmount = quote.discount_type === "percent"
+    ? Math.round(subtotal * (discountVal / 100) * 100) / 100
+    : discountVal
 
   // Unique prep instructions for selected services
   const prepInstructions = Array.from(
@@ -128,7 +134,25 @@ export function QuoteView({ quote: initialQuote }: Props) {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 border-[#C8973E]/30">
+                {hasDiscount && (
+                  <>
+                    <tr className="border-t-2 border-[#C8973E]/30">
+                      <td className="pt-2 text-[#2B2B2B]/60 text-xs">Subtotal</td>
+                      <td className="pt-2 text-right text-[#2B2B2B]/60 text-xs tabular-nums">
+                        ${subtotal.toFixed(2)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="pt-1 text-[#3A6B4C] text-xs font-medium">
+                        Discount{quote.discount_type === "percent" ? ` (${discountVal}%)` : ""}
+                      </td>
+                      <td className="pt-1 text-right text-[#3A6B4C] text-xs tabular-nums font-medium">
+                        −${discountAmount.toFixed(2)}
+                      </td>
+                    </tr>
+                  </>
+                )}
+                <tr className={hasDiscount ? "" : "border-t-2 border-[#C8973E]/30"}>
                   <td className="pt-3 font-bold text-[#2B2B2B]">Total</td>
                   <td
                     className="pt-3 text-right font-black text-[#3A6B4C] text-base tabular-nums"
