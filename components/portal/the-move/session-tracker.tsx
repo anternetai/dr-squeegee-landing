@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Phone, PhoneOff, Timer, Flame, Zap } from "lucide-react"
+import { Phone, PhoneOff, Timer, Flame, Zap, X } from "lucide-react"
 
 interface SessionData {
   id: string
@@ -39,12 +39,95 @@ const AFFIRMATIONS = [
   "Pain is temporary. Regret is forever. Dial.",
 ]
 
-const WARMUP_PROMPTS = [
-  { label: "BREATHE", sub: "4 seconds in. 7 hold. 8 out.", duration: 8000 },
-  { label: "STAND UP", sub: "Power pose. Chest up. Shoulders back.", duration: 6000 },
-  { label: "SMILE", sub: "They can hear it in your voice.", duration: 5000 },
-  { label: "REMEMBER WHY", sub: "85 Jay St. December 1st. Brooklyn.", duration: 6000 },
-  { label: "YOU'RE READY", sub: "Let's go get it.", duration: 4000 },
+// ─── 5-MINUTE PRE-SESSION RITUAL ─────────────────────────────
+// Total: ~5 minutes (300 seconds)
+//
+// Phase 1: BREATHING (90s) — 4 rounds of box breathing (4-4-4-4)
+// Phase 2: VISUALIZATION (45s) — Close eyes, see the apartment, the life
+// Phase 3: POWER UP (40s) — Stand, move, get blood flowing
+// Phase 4: IDENTITY (50s) — Who you are, what you do, why it matters
+// Phase 5: LOCK IN (45s) — Script reminder, first words ready
+// Phase 6: COUNTDOWN (30s) — 10-9-8... you're live
+
+type BreathPhase = "in" | "hold" | "out" | "rest"
+
+interface WarmupPhase {
+  id: string
+  title: string
+  duration: number // total ms for this phase
+  type: "breathing" | "text" | "countdown"
+  lines?: { text: string; sub?: string; hold?: number }[]
+}
+
+const WARMUP_PHASES: WarmupPhase[] = [
+  {
+    id: "breathing",
+    title: "BREATHE",
+    duration: 90000, // 90 seconds
+    type: "breathing",
+  },
+  {
+    id: "visualize",
+    title: "VISUALIZE",
+    duration: 45000,
+    type: "text",
+    lines: [
+      { text: "Close your eyes.", sub: "Take a moment.", hold: 5000 },
+      { text: "See the apartment.", sub: "85 Jay St. Your place. Your space.", hold: 7000 },
+      { text: "See the Brooklyn Bridge\nfrom your window.", sub: "Morning coffee. The city below you.", hold: 8000 },
+      { text: "See yourself there.", sub: "December 1st. You made it.", hold: 7000 },
+      { text: "That life is real.", sub: "You're building it right now, with these calls.", hold: 8000 },
+      { text: "Open your eyes.", sub: "Let's earn it.", hold: 5000 },
+    ],
+  },
+  {
+    id: "power",
+    title: "POWER UP",
+    duration: 40000,
+    type: "text",
+    lines: [
+      { text: "Stand up.", sub: "Right now. On your feet.", hold: 5000 },
+      { text: "Shoulders back.\nChest up.", sub: "Take up space. You belong here.", hold: 6000 },
+      { text: "Shake your hands out.", sub: "Release the tension. Let it go.", hold: 6000 },
+      { text: "Roll your neck.\nLoosen your jaw.", sub: "No tightness. Just flow.", hold: 6000 },
+      { text: "Bounce on your toes.", sub: "Feel the energy. Wake up your body.", hold: 6000 },
+      { text: "You're alive.\nYou're dangerous.", sub: "They don't know what's coming.", hold: 6000 },
+    ],
+  },
+  {
+    id: "identity",
+    title: "IDENTITY",
+    duration: 50000,
+    type: "text",
+    lines: [
+      { text: "You are not begging.", sub: "You are offering a solution to a real problem.", hold: 7000 },
+      { text: "These contractors need leads.", sub: "Their phone isn't ringing. You're the answer.", hold: 7000 },
+      { text: "You charge $200\nper showed appointment.", sub: "No retainer. No risk for them. This is a no-brainer.", hold: 8000 },
+      { text: "You've built the system.", sub: "AI qualification. Facebook ads. Automated booking. It works.", hold: 7000 },
+      { text: "Every call you make\nis an act of service.", sub: "You're helping someone grow their business.", hold: 7000 },
+      { text: "You are the hardest worker\nin the room.", sub: "Nobody wants this more than you.", hold: 7000 },
+    ],
+  },
+  {
+    id: "lockin",
+    title: "LOCK IN",
+    duration: 45000,
+    type: "text",
+    lines: [
+      { text: "Smile.", sub: "They can hear it. It changes everything.", hold: 6000 },
+      { text: "Your opener:", sub: "", hold: 3000 },
+      { text: "\"Hey [NAME], this is\nAnthony with HomeField Hub—\"", sub: "Confident. Warm. Like you're calling a friend.", hold: 8000 },
+      { text: "\"I help contractors like you\nget pre-qualified appointments\nwithout paying a retainer.\"", sub: "Pause. Let it land.", hold: 8000 },
+      { text: "If they say no,\nyou say \"no problem.\"", sub: "And you dial the next one. That's it. That's the game.", hold: 7000 },
+      { text: "Volume wins.\nSpeed wins.\nYou win.", sub: "Let's go.", hold: 7000 },
+    ],
+  },
+  {
+    id: "countdown",
+    title: "GO TIME",
+    duration: 30000,
+    type: "countdown",
+  },
 ]
 
 export function SessionTracker({ todayDials, onSessionChange }: SessionTrackerProps) {
@@ -52,11 +135,18 @@ export function SessionTracker({ todayDials, onSessionChange }: SessionTrackerPr
   const [elapsed, setElapsed] = useState(0)
   const [currentAffirmation, setCurrentAffirmation] = useState(0)
   const [isWarming, setIsWarming] = useState(false)
-  const [warmupStep, setWarmupStep] = useState(0)
+  const [warmupPhaseIdx, setWarmupPhaseIdx] = useState(0)
+  const [warmupSubStep, setWarmupSubStep] = useState(0)
+  const [breathPhase, setBreathPhase] = useState<BreathPhase>("in")
+  const [breathCount, setBreathCount] = useState(4)
+  const [breathRound, setBreathRound] = useState(1)
+  const [countdownNum, setCountdownNum] = useState(10)
+  const [warmupElapsed, setWarmupElapsed] = useState(0)
   const [ending, setEnding] = useState(false)
   const [starting, setStarting] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const affirmationRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const cancelRef = useRef(false)
 
   // Check for active session on mount
   useEffect(() => {
@@ -69,7 +159,7 @@ export function SessionTracker({ todayDials, onSessionChange }: SessionTrackerPr
       })
   }, [])
 
-  // Timer
+  // Session timer
   useEffect(() => {
     if (session) {
       const update = () => {
@@ -95,21 +185,139 @@ export function SessionTracker({ todayDials, onSessionChange }: SessionTrackerPr
     }
   }, [session])
 
-  // Warmup sequence
-  const runWarmup = useCallback(async () => {
-    setIsWarming(true)
-    for (let i = 0; i < WARMUP_PROMPTS.length; i++) {
-      setWarmupStep(i)
-      await new Promise((resolve) => setTimeout(resolve, WARMUP_PROMPTS[i].duration))
+  // Warmup elapsed timer
+  useEffect(() => {
+    if (!isWarming) return
+    const start = Date.now()
+    const id = setInterval(() => setWarmupElapsed(Math.floor((Date.now() - start) / 1000)), 1000)
+    return () => clearInterval(id)
+  }, [isWarming])
+
+  const sleep = (ms: number) => new Promise<void>((resolve) => {
+    const check = () => {
+      if (cancelRef.current) { resolve(); return }
+      setTimeout(resolve, ms)
     }
-    setIsWarming(false)
-    setWarmupStep(0)
+    check()
+  })
+
+  // Breathing exercise: 4 rounds of box breathing (4-4-4-4 = 16s per round, ~64s + transitions)
+  const runBreathing = useCallback(async () => {
+    for (let round = 1; round <= 5; round++) {
+      if (cancelRef.current) return
+      setBreathRound(round)
+
+      // Breathe in (4s)
+      setBreathPhase("in")
+      for (let i = 4; i >= 1; i--) {
+        if (cancelRef.current) return
+        setBreathCount(i)
+        await sleep(1000)
+      }
+
+      // Hold (4s)
+      setBreathPhase("hold")
+      for (let i = 4; i >= 1; i--) {
+        if (cancelRef.current) return
+        setBreathCount(i)
+        await sleep(1000)
+      }
+
+      // Breathe out (4s)
+      setBreathPhase("out")
+      for (let i = 4; i >= 1; i--) {
+        if (cancelRef.current) return
+        setBreathCount(i)
+        await sleep(1000)
+      }
+
+      // Rest (2s between rounds)
+      if (round < 5) {
+        setBreathPhase("rest")
+        await sleep(2000)
+      }
+    }
   }, [])
+
+  // Text phase: cycle through lines
+  const runTextPhase = useCallback(async (phase: WarmupPhase) => {
+    if (!phase.lines) return
+    for (let i = 0; i < phase.lines.length; i++) {
+      if (cancelRef.current) return
+      setWarmupSubStep(i)
+      await sleep(phase.lines[i].hold || 5000)
+    }
+  }, [])
+
+  // Countdown
+  const runCountdown = useCallback(async () => {
+    for (let i = 10; i >= 1; i--) {
+      if (cancelRef.current) return
+      setCountdownNum(i)
+      await sleep(2000)
+    }
+    // Final moment
+    setCountdownNum(0)
+    await sleep(3000)
+  }, [])
+
+  const runWarmup = useCallback(async () => {
+    cancelRef.current = false
+    setIsWarming(true)
+    setWarmupPhaseIdx(0)
+    setWarmupSubStep(0)
+
+    for (let i = 0; i < WARMUP_PHASES.length; i++) {
+      if (cancelRef.current) break
+      setWarmupPhaseIdx(i)
+      setWarmupSubStep(0)
+      const phase = WARMUP_PHASES[i]
+
+      if (phase.type === "breathing") {
+        await runBreathing()
+      } else if (phase.type === "text") {
+        await runTextPhase(phase)
+      } else if (phase.type === "countdown") {
+        await runCountdown()
+      }
+    }
+
+    if (!cancelRef.current) {
+      setIsWarming(false)
+    }
+  }, [runBreathing, runTextPhase, runCountdown])
+
+  function cancelWarmup() {
+    cancelRef.current = true
+    setIsWarming(false)
+    setStarting(false)
+  }
 
   async function startSession() {
     setStarting(true)
-    // Run warmup first
     await runWarmup()
+
+    if (cancelRef.current) {
+      setStarting(false)
+      return
+    }
+
+    const res = await fetch("/api/portal/the-move/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setSession(data)
+      onSessionChange()
+    }
+    setStarting(false)
+  }
+
+  async function skipToSession() {
+    cancelRef.current = true
+    setIsWarming(false)
 
     const res = await fetch("/api/portal/the-move/session", {
       method: "POST",
@@ -141,47 +349,153 @@ export function SessionTracker({ todayDials, onSessionChange }: SessionTrackerPr
   const minutes = Math.floor(elapsed / 60)
   const seconds = elapsed % 60
   const sessionDials = todayDials - (session?.dials_at_start ?? todayDials)
+  const warmupMins = Math.floor(warmupElapsed / 60)
+  const warmupSecs = warmupElapsed % 60
+  const totalWarmupSecs = 300
 
-  // Warmup overlay
+  // ─── WARMUP RENDER ──────────────────────────────────────
   if (isWarming) {
-    const prompt = WARMUP_PROMPTS[warmupStep]
+    const phase = WARMUP_PHASES[warmupPhaseIdx]
+    const progressPct = Math.min(100, (warmupElapsed / totalWarmupSecs) * 100)
+
     return (
       <div className="relative overflow-hidden rounded-2xl">
         <div className="absolute inset-0 bg-gradient-to-br from-amber-950 via-black to-black" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(245,158,11,0.2)_0%,_transparent_70%)]" />
-        <div className="relative flex flex-col items-center justify-center px-6 py-16 text-center">
-          {/* Step indicators */}
-          <div className="mb-8 flex gap-2">
-            {WARMUP_PROMPTS.map((_, i) => (
-              <div
-                key={i}
-                className={`h-1 w-8 rounded-full transition-all duration-300 ${
-                  i <= warmupStep ? "bg-amber-400" : "bg-stone-800"
-                }`}
-              />
-            ))}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(245,158,11,0.15)_0%,_transparent_70%)]" />
+
+        <div className="relative px-6 py-10 md:py-16">
+          {/* Top bar: phase progress + timer + skip */}
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] tracking-[0.3em] text-amber-500/60 uppercase">
+              {phase.title}
+            </span>
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-xs text-stone-600">
+                {warmupMins}:{String(warmupSecs).padStart(2, "0")} / 5:00
+              </span>
+              <button
+                onClick={skipToSession}
+                className="text-[10px] tracking-wide text-stone-600 hover:text-stone-400 uppercase transition-colors"
+              >
+                Skip
+              </button>
+              <button onClick={cancelWarmup} className="text-stone-700 hover:text-stone-400 transition-colors">
+                <X className="size-4" />
+              </button>
+            </div>
           </div>
 
-          <p className="text-4xl font-black tracking-tight text-white md:text-5xl">
-            {prompt.label}
-          </p>
-          <p className="mt-3 text-lg font-light text-amber-200/60">
-            {prompt.sub}
-          </p>
+          {/* Phase progress bar */}
+          <div className="mb-8">
+            <div className="h-0.5 w-full overflow-hidden rounded-full bg-stone-800/50">
+              <div
+                className="h-full bg-gradient-to-r from-amber-600 to-amber-400 transition-all duration-1000"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <div className="mt-2 flex justify-between">
+              {WARMUP_PHASES.map((p, i) => (
+                <span
+                  key={p.id}
+                  className={`text-[8px] tracking-wider uppercase ${
+                    i === warmupPhaseIdx ? "text-amber-400" : i < warmupPhaseIdx ? "text-stone-600" : "text-stone-800"
+                  }`}
+                >
+                  {p.title}
+                </span>
+              ))}
+            </div>
+          </div>
 
-          {warmupStep === 0 && (
-            <div className="mt-8 size-20 rounded-full border-2 border-amber-500/30 animate-pulse" />
+          {/* BREATHING PHASE */}
+          {phase.type === "breathing" && (
+            <div className="flex flex-col items-center text-center">
+              <p className="mb-2 text-[10px] tracking-[0.2em] text-stone-600 uppercase">
+                Round {breathRound} of 5
+              </p>
+
+              {/* Animated breathing circle */}
+              <div className="relative my-6 flex items-center justify-center">
+                <div
+                  className={`rounded-full border-2 transition-all duration-[3500ms] ease-in-out ${
+                    breathPhase === "in"
+                      ? "size-40 md:size-48 border-amber-400 bg-amber-500/10 shadow-[0_0_40px_rgba(245,158,11,0.2)]"
+                      : breathPhase === "hold"
+                        ? "size-40 md:size-48 border-amber-300 bg-amber-400/15 shadow-[0_0_50px_rgba(245,158,11,0.25)]"
+                        : breathPhase === "out"
+                          ? "size-20 md:size-24 border-amber-600/50 bg-amber-500/5"
+                          : "size-20 md:size-24 border-stone-700 bg-transparent"
+                  }`}
+                />
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <p className="text-3xl font-black text-white md:text-4xl">
+                    {breathPhase === "rest" ? "..." : breathCount}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-2xl font-black tracking-tight text-white md:text-3xl">
+                {breathPhase === "in" && "Breathe In"}
+                {breathPhase === "hold" && "Hold"}
+                {breathPhase === "out" && "Breathe Out"}
+                {breathPhase === "rest" && "Rest"}
+              </p>
+              <p className="mt-2 text-sm text-amber-200/40">
+                {breathPhase === "in" && "Fill your lungs completely. Deep into your belly."}
+                {breathPhase === "hold" && "Hold it. Feel the stillness."}
+                {breathPhase === "out" && "Slow and steady. Let everything go."}
+                {breathPhase === "rest" && "Reset. Next round coming."}
+              </p>
+            </div>
+          )}
+
+          {/* TEXT PHASES (visualize, power, identity, lockin) */}
+          {phase.type === "text" && phase.lines && (
+            <div className="flex flex-col items-center text-center min-h-[200px] justify-center">
+              <p className="whitespace-pre-line text-2xl font-black tracking-tight text-white leading-tight md:text-3xl">
+                {phase.lines[warmupSubStep]?.text}
+              </p>
+              {phase.lines[warmupSubStep]?.sub && (
+                <p className="mt-4 max-w-md text-base font-light text-amber-200/50 leading-relaxed">
+                  {phase.lines[warmupSubStep].sub}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* COUNTDOWN */}
+          {phase.type === "countdown" && (
+            <div className="flex flex-col items-center text-center min-h-[200px] justify-center">
+              {countdownNum > 0 ? (
+                <>
+                  <p className="text-8xl font-black text-white md:text-9xl tabular-nums">
+                    {countdownNum}
+                  </p>
+                  <p className="mt-4 text-sm tracking-[0.3em] text-amber-400/60 uppercase">
+                    {countdownNum > 5 ? "Get ready" : countdownNum > 2 ? "Almost there" : "Here we go"}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-5xl font-black text-amber-400 md:text-6xl tracking-tight">
+                    GO.
+                  </p>
+                  <p className="mt-3 text-lg text-amber-200/60">
+                    Time to change your life.
+                  </p>
+                </>
+              )}
+            </div>
           )}
         </div>
       </div>
     )
   }
 
-  // Active session
+  // ─── ACTIVE SESSION ──────────────────────────────────────
   if (session) {
     return (
       <div className="relative overflow-hidden rounded-2xl">
-        {/* Pulsing warm background */}
         <div className="absolute inset-0 bg-gradient-to-br from-amber-950/80 via-stone-950 to-black" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(245,158,11,0.12)_0%,_transparent_60%)]" />
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
@@ -240,7 +554,7 @@ export function SessionTracker({ todayDials, onSessionChange }: SessionTrackerPr
     )
   }
 
-  // Ready to start
+  // ─── READY TO START ──────────────────────────────────────
   return (
     <div className="relative overflow-hidden rounded-2xl">
       <div className="absolute inset-0 bg-gradient-to-br from-stone-950 via-black to-black" />
@@ -254,7 +568,7 @@ export function SessionTracker({ todayDials, onSessionChange }: SessionTrackerPr
           Ready to dial?
         </p>
         <p className="text-xs text-stone-600 mb-6 max-w-xs mx-auto">
-          Start a session to track your dials, time, and keep your head in the game with live reminders.
+          5-minute pre-session ritual: breathing, visualization, identity check, then go time.
         </p>
         <Button
           onClick={startSession}
