@@ -449,23 +449,26 @@ function useRecordingPreviewWindow(
   const popupRef = useRef<Window | null>(null)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Store callbacks in refs so the popup event handlers always read latest
+  // Store everything in refs so the popup button handlers always read latest
   const onCornerRef = useRef(onCornerChange)
   const onSizeRef = useRef(onSizeChange)
+  const cornerRef = useRef(corner)
+  const sizeRef = useRef(size)
   onCornerRef.current = onCornerChange
   onSizeRef.current = onSizeChange
+  cornerRef.current = corner
+  sizeRef.current = size
 
+  // Only depend on isRecording — never re-run for corner/size changes
   useEffect(() => {
     if (!isRecording) {
-      // Close popup when recording stops
       if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
       if (popupRef.current && !popupRef.current.closed) popupRef.current.close()
       popupRef.current = null
       return
     }
 
-    // Open popup window (640x400, positioned for second monitor)
-    // Open near-fullscreen popup — sized to fill a monitor
+    // Open near-fullscreen popup
     const w = Math.min(screen.availWidth, 1920)
     const h = Math.min(screen.availHeight, 1080)
     const popup = window.open(
@@ -473,16 +476,14 @@ function useRecordingPreviewWindow(
       "recording-preview",
       `width=${w},height=${h},left=0,top=0,menubar=no,toolbar=no,location=no,status=no,resizable=yes`
     )
-    if (!popup) return // popup blocked
+    if (!popup) return
     popupRef.current = popup
 
-    // Write the HTML structure into the popup
     popup.document.title = "Recording Preview"
     popup.document.body.style.cssText = "margin:0;padding:0;background:#111;font-family:system-ui,sans-serif;overflow:hidden;"
-
     popup.document.body.innerHTML = `
       <div style="display:flex;flex-direction:column;height:100vh;">
-        <div id="controls" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#000;flex-shrink:0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#000;flex-shrink:0;">
           <div style="display:flex;align-items:center;gap:6px;">
             <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;animation:pulse 2s infinite;"></span>
             <span style="font-size:12px;color:rgba(255,255,255,0.5);font-weight:500;">Recording Preview</span>
@@ -490,44 +491,34 @@ function useRecordingPreviewWindow(
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="display:flex;align-items:center;gap:4px;">
               <span style="font-size:10px;color:rgba(255,255,255,0.25);">Size</span>
-              <button data-size="small" class="sz-btn" style="padding:2px 6px;border-radius:4px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:transparent;color:rgba(255,255,255,0.3);">S</button>
-              <button data-size="medium" class="sz-btn" style="padding:2px 6px;border-radius:4px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:transparent;color:rgba(255,255,255,0.3);">M</button>
-              <button data-size="large" class="sz-btn" style="padding:2px 6px;border-radius:4px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:transparent;color:rgba(255,255,255,0.3);">L</button>
+              <button data-size="small" class="sz-btn">S</button>
+              <button data-size="medium" class="sz-btn">M</button>
+              <button data-size="large" class="sz-btn">L</button>
             </div>
             <div style="width:1px;height:14px;background:rgba(255,255,255,0.1);"></div>
             <div style="display:flex;align-items:center;gap:4px;">
               <span style="font-size:10px;color:rgba(255,255,255,0.25);">Position</span>
-              <button data-corner="top-left" class="pos-btn" style="padding:2px 6px;border-radius:4px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:transparent;color:rgba(255,255,255,0.3);">TL</button>
-              <button data-corner="top-right" class="pos-btn" style="padding:2px 6px;border-radius:4px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:transparent;color:rgba(255,255,255,0.3);">TR</button>
-              <button data-corner="bottom-left" class="pos-btn" style="padding:2px 6px;border-radius:4px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:transparent;color:rgba(255,255,255,0.3);">BL</button>
-              <button data-corner="bottom-right" class="pos-btn" style="padding:2px 6px;border-radius:4px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:transparent;color:rgba(255,255,255,0.3);">BR</button>
+              <button data-corner="top-left" class="pos-btn">TL</button>
+              <button data-corner="top-right" class="pos-btn">TR</button>
+              <button data-corner="bottom-left" class="pos-btn">BL</button>
+              <button data-corner="bottom-right" class="pos-btn">BR</button>
             </div>
           </div>
         </div>
         <canvas id="preview" style="flex:1;width:100%;background:#000;display:block;object-fit:contain;"></canvas>
       </div>
-      <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}</style>
+      <style>
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+        .sz-btn,.pos-btn{padding:2px 6px;border-radius:4px;border:none;font-size:10px;font-weight:700;cursor:pointer;background:transparent;color:rgba(255,255,255,0.3);}
+        .sz-btn:hover,.pos-btn:hover{color:rgba(255,255,255,0.7);}
+      </style>
     `
 
-    // Wire up button clicks
-    function updateButtonStyles() {
-      if (!popup || popup.closed) return
-      popup.document.querySelectorAll<HTMLButtonElement>(".sz-btn").forEach((btn) => {
-        const active = btn.dataset.size === onSizeRef.current.name // won't work, use data attr comparison below
-        btn.style.background = "transparent"
-        btn.style.color = "rgba(255,255,255,0.3)"
-      })
-      popup.document.querySelectorAll<HTMLButtonElement>(".pos-btn").forEach((btn) => {
-        btn.style.background = "transparent"
-        btn.style.color = "rgba(255,255,255,0.3)"
-      })
-    }
-
+    // Button click handlers — use refs, never trigger React re-render that would destroy popup
     popup.document.querySelectorAll<HTMLButtonElement>(".sz-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         const s = btn.dataset.size as WebcamSize
         onSizeRef.current(s)
-        // Highlight active
         popup.document.querySelectorAll<HTMLButtonElement>(".sz-btn").forEach((b) => {
           const isActive = b.dataset.size === s
           b.style.background = isActive ? "rgba(59,130,246,0.3)" : "transparent"
@@ -540,7 +531,6 @@ function useRecordingPreviewWindow(
       btn.addEventListener("click", () => {
         const c = btn.dataset.corner as WebcamCorner
         onCornerRef.current(c)
-        // Highlight active
         popup.document.querySelectorAll<HTMLButtonElement>(".pos-btn").forEach((b) => {
           const isActive = b.dataset.corner === c
           b.style.background = isActive ? "rgba(249,115,22,0.3)" : "transparent"
@@ -549,11 +539,11 @@ function useRecordingPreviewWindow(
       })
     })
 
-    // Set initial active states
-    const initSzBtn = popup.document.querySelector<HTMLButtonElement>(`.sz-btn[data-size="${size}"]`)
-    if (initSzBtn) { initSzBtn.style.background = "rgba(59,130,246,0.3)"; initSzBtn.style.color = "rgb(96,165,250)" }
-    const initPosBtn = popup.document.querySelector<HTMLButtonElement>(`.pos-btn[data-corner="${corner}"]`)
-    if (initPosBtn) { initPosBtn.style.background = "rgba(249,115,22,0.3)"; initPosBtn.style.color = "rgb(251,146,60)" }
+    // Set initial active button highlights
+    const initSz = popup.document.querySelector<HTMLButtonElement>(`.sz-btn[data-size="${sizeRef.current}"]`)
+    if (initSz) { initSz.style.background = "rgba(59,130,246,0.3)"; initSz.style.color = "rgb(96,165,250)" }
+    const initPos = popup.document.querySelector<HTMLButtonElement>(`.pos-btn[data-corner="${cornerRef.current}"]`)
+    if (initPos) { initPos.style.background = "rgba(249,115,22,0.3)"; initPos.style.color = "rgb(251,146,60)" }
 
     // Draw loop — mirror compositing canvas at 5fps
     const previewCanvas = popup.document.getElementById("preview") as HTMLCanvasElement | null
@@ -579,7 +569,7 @@ function useRecordingPreviewWindow(
       if (popup && !popup.closed) popup.close()
       popupRef.current = null
     }
-  }, [isRecording, canvasRef, corner, size]) // re-run to update initial highlights
+  }, [isRecording, canvasRef]) // only isRecording controls open/close — NOT corner/size
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────────
@@ -999,10 +989,16 @@ export function CallCockpit() {
     if (webcamRef.current) {
       // Auto-enable webcam if not already on
       webcamRef.current.enable()
-      // Small delay to let camera start before grabbing refs
-      await new Promise((r) => setTimeout(r, 500))
-      webcamStreamForSessionRef.current = webcamRef.current.getStream()
-      webcamCanvasForSessionRef.current = webcamRef.current.getCanvas()
+      // Wait for camera to start — retry up to 2s
+      for (let i = 0; i < 8; i++) {
+        await new Promise((r) => setTimeout(r, 250))
+        const stream = webcamRef.current.getStream()
+        if (stream && stream.active) {
+          webcamStreamForSessionRef.current = stream
+          webcamCanvasForSessionRef.current = webcamRef.current.getCanvas()
+          break
+        }
+      }
     }
     await startSessionRec()
   }, [startSessionRec])

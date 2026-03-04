@@ -311,6 +311,7 @@ export const WebcamPiP = forwardRef<WebcamPiPHandle, WebcamPiPProps>(function We
       {prefs.enabled && (
         <div
           ref={pipRef}
+          data-webcam-pip
           style={{ ...pipStyle, zIndex: 9999 }}
           className={cn(
             "rounded-xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden",

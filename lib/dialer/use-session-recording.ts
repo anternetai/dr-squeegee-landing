@@ -104,11 +104,20 @@ export function useSessionRecording({
       setError(null)
       setState("waiting-screen")
 
-      // 1. Prompt for screen share
+      // Clear stale webcam video element from previous recording
+      if (webcamVideoRef.current) {
+        webcamVideoRef.current.pause()
+        webcamVideoRef.current.srcObject = null
+        webcamVideoRef.current = null
+      }
+
+      // 1. Prompt for screen share (include current tab in picker)
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: { frameRate: 30 },
         audio: false, // we use our own mixed audio
-      })
+        selfBrowserSurface: "include",
+        preferCurrentTab: true,
+      } as DisplayMediaStreamOptions)
       screenStreamRef.current = screenStream
 
       // Handle user stopping screen share via browser UI
@@ -190,6 +199,30 @@ export function useSessionRecording({
           ctx.strokeStyle = "rgba(255,255,255,0.3)"
           ctx.lineWidth = 2
           ctx.stroke()
+        }
+
+        // Blur PII regions on the canvas (user sees info clearly, recording gets blur)
+        // Works when capturing browser tab — scale maps viewport coords to video coords
+        const piiEls = document.querySelectorAll("[data-pii]")
+        if (piiEls.length > 0) {
+          const scale = canvas.width / window.innerWidth
+          piiEls.forEach((el) => {
+            const r = (el as HTMLElement).getBoundingClientRect()
+            const bx = r.left * scale
+            const by = r.top * scale
+            const bw = r.width * scale
+            const bh = r.height * scale
+            if (bw > 0 && bh > 0) {
+              ctx.save()
+              ctx.beginPath()
+              ctx.rect(bx, by, bw, bh)
+              ctx.clip()
+              ctx.filter = "blur(10px)"
+              ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
+              ctx.filter = "none"
+              ctx.restore()
+            }
+          })
         }
 
         animFrameRef.current = requestAnimationFrame(drawFrame)

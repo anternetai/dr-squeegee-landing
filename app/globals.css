@@ -124,13 +124,10 @@
   }
 }
 
-/* PII blur — activated when session recording is active */
-.recording-active [data-pii] {
-  filter: blur(8px);
-  transition: filter 0.2s ease;
-}
-.recording-active [data-pii]:hover {
-  filter: blur(8px); /* Stay blurred even on hover */
+/* PII blur — handled on the recording canvas (not CSS) so user can still read info on screen */
+/* Hide webcam PiP window during recording — it's composited into the recording already */
+.recording-active [data-webcam-pip] {
+  display: none !important;
 }
 
 /* Phone Input Light Theme Styles */
