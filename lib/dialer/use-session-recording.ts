@@ -70,6 +70,7 @@ export function useSessionRecording({
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const animFrameRef = useRef<number>(0)
   const screenVideoRef = useRef<HTMLVideoElement | null>(null)
+  const webcamVideoRef = useRef<HTMLVideoElement | null>(null)
   const webcamCornerRef = useRef<WebcamCorner>(webcamCorner)
 
   // Keep ref in sync with state so draw loop reads latest value
@@ -132,19 +133,27 @@ export function useSessionRecording({
         // Draw screen capture
         ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
 
-        // Draw webcam overlay (bottom-right, rounded)
+        // Draw webcam overlay
         const webcamCanvas = webcamCanvasRef.current
         const webcamStream = webcamStreamRef.current
 
-        // Prefer the blur-composited canvas, fallback to raw video
+        // Prefer blur-composited canvas, fallback to raw video element from stream
         let webcamSource: CanvasImageSource | null = null
         if (webcamCanvas && webcamCanvas.width > 0 && webcamCanvas.height > 0) {
           webcamSource = webcamCanvas
-        } else if (webcamStream) {
-          // Draw from a video element showing the webcam stream
-          const existingVideo = document.querySelector<HTMLVideoElement>("#telnyx-remote-audio")
-          // Not the right video — we need the webcam video. Let's just skip if canvas isn't available.
-          webcamSource = null
+        } else if (webcamStream && webcamStream.active) {
+          // Create or reuse a hidden video element for the webcam stream
+          if (!webcamVideoRef.current) {
+            const wv = document.createElement("video")
+            wv.srcObject = webcamStream
+            wv.muted = true
+            wv.playsInline = true
+            wv.play().catch(() => {})
+            webcamVideoRef.current = wv
+          }
+          if (webcamVideoRef.current.videoWidth > 0) {
+            webcamSource = webcamVideoRef.current
+          }
         }
 
         if (webcamSource) {
@@ -324,6 +333,12 @@ export function useSessionRecording({
       screenVideoRef.current.pause()
       screenVideoRef.current.srcObject = null
       screenVideoRef.current = null
+    }
+    // Remove webcam video element
+    if (webcamVideoRef.current) {
+      webcamVideoRef.current.pause()
+      webcamVideoRef.current.srcObject = null
+      webcamVideoRef.current = null
     }
     mediaRecorderRef.current = null
   }

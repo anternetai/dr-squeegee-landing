@@ -437,27 +437,25 @@ function RecordingPreview({
   onCornerChange: (c: WebcamCorner) => void
 }) {
   const previewRef = useRef<HTMLCanvasElement>(null)
-  const animRef = useRef<number>(0)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Mirror the compositing canvas onto a smaller preview canvas
+  // Mirror the compositing canvas onto a smaller preview canvas at ~5fps (low CPU)
   useEffect(() => {
-    const draw = () => {
+    intervalRef.current = setInterval(() => {
       const src = canvasRef.current
       const dst = previewRef.current
-      if (src && dst) {
+      if (src && dst && src.width > 0) {
         const ctx = dst.getContext("2d")
         if (ctx) {
-          // Scale to preview size while maintaining aspect ratio
           const aspect = src.width / (src.height || 1)
-          dst.width = 320
-          dst.height = Math.round(320 / aspect)
+          if (dst.width !== 320) dst.width = 320
+          const h = Math.round(320 / aspect)
+          if (dst.height !== h) dst.height = h
           ctx.drawImage(src, 0, 0, dst.width, dst.height)
         }
       }
-      animRef.current = requestAnimationFrame(draw)
-    }
-    animRef.current = requestAnimationFrame(draw)
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current) }
+    }, 200) // 5fps
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [canvasRef])
 
   return (
