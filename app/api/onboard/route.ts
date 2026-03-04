@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
 
 // n8n webhook URL for client onboarding automation
 const N8N_WEBHOOK_URL = "https://n8n-production-1286.up.railway.app/webhook/client-onboarding"
@@ -42,7 +44,7 @@ export async function POST(request: NextRequest) {
     let clientId = crypto.randomUUID() // Fallback ID if DB is offline
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabase()
         .from("agency_clients")
         .insert(clientData)
         .select()
