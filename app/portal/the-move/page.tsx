@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 
 import { MoveHero } from "@/components/portal/the-move/move-hero"
+import { SessionTracker } from "@/components/portal/the-move/session-tracker"
 import { PhaseTracker } from "@/components/portal/the-move/phase-tracker"
 import { ScorecardSection } from "@/components/portal/the-move/scorecard-section"
 import { ClientProgress } from "@/components/portal/the-move/client-progress"
@@ -90,6 +91,13 @@ export default function TheMovePage() {
         </div>
 
         <MoveHero stats={stats} />
+
+        {/* Session Tracker — right below the hero */}
+        <SessionTracker
+          todayDials={stats?.todayDials ?? 0}
+          onSessionChange={fetchData}
+        />
+
         <PhaseTracker />
         <ScorecardSection stats={stats} />
 
