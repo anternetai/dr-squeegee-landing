@@ -134,6 +134,23 @@ const SCRIPT_SECTIONS: ScriptSection[] = [
       {
         type: "dialogue",
         text:
+          "And just so you know where I'm coming from... I actually worked for American Home Remodeling Company here in Charlotte. Started as a canvasser back in 2016... moved into in-home sales... and eventually ended up running their whole marketing team doing exactly this — lead generation.",
+      },
+      { type: "stage", text: "(pause)" },
+      {
+        type: "dialogue",
+        text:
+          "So I've literally been on every side of this thing... knocking doors, sitting at kitchen tables, and then building the machine that fills the pipeline.",
+      },
+      { type: "stage", text: "(pause)" },
+      {
+        type: "cue",
+        text: "🎯 Tonality: Matter-of-fact, not bragging. You're establishing that you're a peer who came up through the trades — not some agency kid. Let it land, then transition into the industry observation.",
+      },
+      { type: "blank" },
+      {
+        type: "dialogue",
+        text:
           "And what we're seeing from a high-level in the industry right now... is that the shared lead platforms... you know, the Angis and HomeAdvisors... they've become a total race to the bottom.",
       },
       { type: "stage", text: "(pause)" },
