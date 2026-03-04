@@ -1,27 +1,41 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
-import { Video, VideoOff, Minus, GripHorizontal } from "lucide-react"
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react"
+import { Video, VideoOff, Minus, GripHorizontal, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 const STORAGE_KEY = "webcam-pip-prefs"
 
+type BgEffect = "none" | "light-blur" | "heavy-blur"
+
+const BG_EFFECTS: { key: BgEffect; label: string; blur: number }[] = [
+  { key: "none", label: "Off", blur: 0 },
+  { key: "light-blur", label: "Light", blur: 8 },
+  { key: "heavy-blur", label: "Heavy", blur: 20 },
+]
+
 interface PiPPrefs {
   enabled: boolean
   minimized: boolean
   position: { x: number; y: number }
+  bgEffect?: BgEffect
 }
 
 function loadPrefs(): PiPPrefs {
   if (typeof window === "undefined") {
-    return { enabled: false, minimized: false, position: { x: -1, y: -1 } }
+    return { enabled: false, minimized: false, position: { x: -1, y: -1 }, bgEffect: "none" }
   }
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as PiPPrefs
+    if (raw) {
+      const parsed = JSON.parse(raw) as PiPPrefs
+      // Ensure bgEffect has a default
+      if (!parsed.bgEffect) parsed.bgEffect = "none"
+      return parsed
+    }
   } catch {}
-  return { enabled: false, minimized: false, position: { x: -1, y: -1 } }
+  return { enabled: false, minimized: false, position: { x: -1, y: -1 }, bgEffect: "none" }
 }
 
 function savePrefs(prefs: PiPPrefs) {
@@ -30,10 +44,286 @@ function savePrefs(prefs: PiPPrefs) {
   } catch {}
 }
 
+// ─── MediaPipe Segmenter Singleton ──────────────────────────────────────────
+// We lazily load the segmenter only when a blur effect is first activated.
+// This avoids downloading ~5MB of WASM + model on page load.
+
+let segmenterPromise: Promise<any> | null = null
+let segmenterInstance: any | null = null
+
+async function getSegmenter(): Promise<any> {
+  if (segmenterInstance) return segmenterInstance
+
+  if (!segmenterPromise) {
+    segmenterPromise = (async () => {
+      const vision = await import("@mediapipe/tasks-vision")
+      const { ImageSegmenter, FilesetResolver } = vision
+
+      const wasmFileset = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.32/wasm"
+      )
+
+      const segmenter = await ImageSegmenter.createFromOptions(wasmFileset, {
+        baseOptions: {
+          modelAssetPath:
+            "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite",
+          delegate: "GPU",
+        },
+        runningMode: "VIDEO",
+        outputCategoryMask: true,
+        outputConfidenceMasks: false,
+      })
+
+      segmenterInstance = segmenter
+      return segmenter
+    })()
+  }
+
+  return segmenterPromise
+}
+
+// ─── Canvas Background Blur Processor ───────────────────────────────────────
+
+function useBackgroundBlur(
+  videoRef: React.RefObject<HTMLVideoElement | null>,
+  canvasRef: React.RefObject<HTMLCanvasElement | null>,
+  effect: BgEffect,
+  isActive: boolean
+) {
+  const animFrameRef = useRef<number>(0)
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const lastTimestampRef = useRef<number>(0)
+
+  useEffect(() => {
+    if (!isActive || effect === "none") {
+      // Cancel any running loop
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current)
+        animFrameRef.current = 0
+      }
+      return
+    }
+
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas) return
+
+    const ctx = canvas.getContext("2d", { willReadFrequently: true })
+    if (!ctx) return
+
+    // Create offscreen canvas for blurred background
+    if (!offscreenCanvasRef.current) {
+      offscreenCanvasRef.current = document.createElement("canvas")
+    }
+    const offscreen = offscreenCanvasRef.current
+
+    const blurAmount = BG_EFFECTS.find((e) => e.key === effect)?.blur ?? 10
+
+    let segmenter: any = null
+    let isRunning = true
+
+    // Initialize segmenter
+    getSegmenter().then((s) => {
+      if (!isRunning) return
+      segmenter = s
+    })
+
+    const processFrame = () => {
+      if (!isRunning) return
+
+      if (!video.videoWidth || !video.videoHeight || video.readyState < 2) {
+        animFrameRef.current = requestAnimationFrame(processFrame)
+        return
+      }
+
+      const w = video.videoWidth
+      const h = video.videoHeight
+
+      // Size canvases to match video
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w
+        canvas.height = h
+        offscreen.width = w
+        offscreen.height = h
+      }
+
+      if (!segmenter) {
+        // Segmenter not ready yet — just draw raw video
+        ctx.drawImage(video, 0, 0, w, h)
+        animFrameRef.current = requestAnimationFrame(processFrame)
+        return
+      }
+
+      // MediaPipe requires monotonically increasing timestamps
+      const now = performance.now()
+      if (now <= lastTimestampRef.current) {
+        animFrameRef.current = requestAnimationFrame(processFrame)
+        return
+      }
+      lastTimestampRef.current = now
+
+      try {
+        // Run segmentation
+        const result = segmenter.segmentForVideo(video, now)
+        const categoryMask = result?.categoryMask
+
+        if (!categoryMask) {
+          ctx.drawImage(video, 0, 0, w, h)
+          animFrameRef.current = requestAnimationFrame(processFrame)
+          return
+        }
+
+        const maskData = categoryMask.getAsUint8Array()
+
+        // Step 1: Draw blurred background on offscreen canvas
+        const offCtx = offscreen.getContext("2d")!
+        offCtx.filter = `blur(${blurAmount}px)`
+        offCtx.drawImage(video, 0, 0, w, h)
+        offCtx.filter = "none"
+
+        // Step 2: Draw the blurred background on main canvas
+        ctx.drawImage(offscreen, 0, 0, w, h)
+
+        // Step 3: Draw the original video frame
+        // We need to extract only the person pixels using the mask
+        // Draw original frame to offscreen temporarily
+        offCtx.filter = "none"
+        offCtx.drawImage(video, 0, 0, w, h)
+
+        // Get pixel data from both
+        const bgImageData = ctx.getImageData(0, 0, w, h)
+        const fgImageData = offCtx.getImageData(0, 0, w, h)
+        const outPixels = bgImageData.data
+
+        // Composite: where mask > 0 (person), use original frame pixels
+        for (let i = 0; i < maskData.length; i++) {
+          if (maskData[i] > 0) {
+            // Person pixel — use original (unblurred) frame
+            const pi = i * 4
+            outPixels[pi] = fgImageData.data[pi]         // R
+            outPixels[pi + 1] = fgImageData.data[pi + 1] // G
+            outPixels[pi + 2] = fgImageData.data[pi + 2] // B
+            outPixels[pi + 3] = 255                        // A
+          }
+          // else: keep the blurred background pixel already in bgImageData
+        }
+
+        ctx.putImageData(bgImageData, 0, 0)
+
+        // Close the mask to free memory
+        categoryMask.close()
+      } catch {
+        // On error, just draw raw video
+        ctx.drawImage(video, 0, 0, w, h)
+      }
+
+      animFrameRef.current = requestAnimationFrame(processFrame)
+    }
+
+    animFrameRef.current = requestAnimationFrame(processFrame)
+
+    return () => {
+      isRunning = false
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current)
+        animFrameRef.current = 0
+      }
+    }
+  }, [videoRef, canvasRef, effect, isActive])
+}
+
+// ─── Effect Picker ──────────────────────────────────────────────────────────
+
+function EffectPicker({
+  value,
+  onChange,
+}: {
+  value: BgEffect
+  onChange: (effect: BgEffect) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const pickerRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!open) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [open])
+
+  return (
+    <div className="relative" ref={pickerRef}>
+      <button
+        onClick={() => setOpen(!open)}
+        onMouseDown={(e) => e.stopPropagation()}
+        className={cn(
+          "p-0.5 rounded transition-colors",
+          value !== "none"
+            ? "text-orange-400 hover:text-orange-300"
+            : "text-white/40 hover:text-white/80"
+        )}
+        title="Background effects"
+      >
+        <Sparkles className="h-3 w-3" />
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-1 z-50 bg-zinc-800/95 border border-white/10 rounded-lg shadow-xl p-1 min-w-[100px]"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div className="text-[9px] text-white/40 font-medium px-2 py-0.5 uppercase tracking-wider">
+            Background
+          </div>
+          {BG_EFFECTS.map((fx) => (
+            <button
+              key={fx.key}
+              onClick={() => {
+                onChange(fx.key)
+                setOpen(false)
+              }}
+              className={cn(
+                "w-full text-left px-2 py-1 rounded text-xs transition-colors",
+                value === fx.key
+                  ? "bg-orange-500/20 text-orange-400"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
+              )}
+            >
+              {fx.label}
+              {fx.key === "none" && (
+                <span className="text-white/30 ml-1">— raw</span>
+              )}
+              {fx.key === "light-blur" && (
+                <span className="text-white/30 ml-1">blur</span>
+              )}
+              {fx.key === "heavy-blur" && (
+                <span className="text-white/30 ml-1">blur</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────
+
 interface WebcamPiPProps {
   /** Whether to show the toggle button (outside the PiP window) */
   showToggleButton?: boolean
   className?: string
+}
+
+/** Imperative handle for parent to access webcam streams */
+export interface WebcamPiPHandle {
+  getStream(): MediaStream | null
+  getCanvas(): HTMLCanvasElement | null
 }
 
 /**
@@ -42,20 +332,42 @@ interface WebcamPiPProps {
  * - Video-only (NO audio — audio comes from phone call)
  * - Draggable, defaulting to bottom-right corner
  * - Can be minimized to icon only
+ * - Background blur effects (none, light, heavy) via MediaPipe
  * - Preferences persisted in localStorage
  * - Purpose: self-awareness during calls (posture, smile, energy)
  */
-export function WebcamPiP({ showToggleButton = true, className }: WebcamPiPProps) {
+export const WebcamPiP = forwardRef<WebcamPiPHandle, WebcamPiPProps>(function WebcamPiP({ showToggleButton = true, className }, ref) {
   const [prefs, setPrefs] = useState<PiPPrefs>(() => loadPrefs())
   const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [position, setPosition] = useState({ x: -1, y: -1 }) // -1 = use CSS default
+  const [segmenterReady, setSegmenterReady] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const pipRef = useRef<HTMLDivElement>(null)
   const dragOffset = useRef({ x: 0, y: 0 })
+
+  // Expose stream + canvas to parent via ref
+  useImperativeHandle(ref, () => ({
+    getStream: () => streamRef.current,
+    getCanvas: () => canvasRef.current,
+  }), [])
+
+  const bgEffect = prefs.bgEffect ?? "none"
+  const isBlurActive = bgEffect !== "none" && prefs.enabled && !prefs.minimized && hasPermission === true
+
+  // Preload segmenter when blur is activated
+  useEffect(() => {
+    if (bgEffect !== "none" && !segmenterReady) {
+      getSegmenter().then(() => setSegmenterReady(true)).catch(() => {})
+    }
+  }, [bgEffect, segmenterReady])
+
+  // Run the background blur processing loop
+  useBackgroundBlur(videoRef, canvasRef, bgEffect, isBlurActive)
 
   // Sync position from prefs on mount
   useEffect(() => {
@@ -121,6 +433,13 @@ export function WebcamPiP({ showToggleButton = true, className }: WebcamPiPProps
     updatePrefs({ minimized: !prefs.minimized })
   }, [prefs.minimized, updatePrefs])
 
+  const setEffect = useCallback(
+    (effect: BgEffect) => {
+      updatePrefs({ bgEffect: effect })
+    },
+    [updatePrefs]
+  )
+
   // ─── Dragging ─────────────────────────────────────────────────────────────
 
   const handleMouseDown = useCallback(
@@ -159,6 +478,10 @@ export function WebcamPiP({ showToggleButton = true, className }: WebcamPiPProps
       window.removeEventListener("mouseup", handleMouseUp)
     }
   }, [isDragging, updatePrefs])
+
+  // ─── Close effect picker when clicking outside ────────────────────────────
+
+  // Handled internally by the EffectPicker component
 
   // ─── Computed position style ──────────────────────────────────────────────
 
@@ -228,6 +551,7 @@ export function WebcamPiP({ showToggleButton = true, className }: WebcamPiPProps
                   <span className="text-xs font-medium text-white/60">You</span>
                 </div>
                 <div className="flex items-center gap-0.5">
+                  <EffectPicker value={bgEffect} onChange={setEffect} />
                   <button
                     onClick={toggleMinimized}
                     className="p-0.5 rounded text-white/40 hover:text-white/80 transition-colors"
@@ -262,6 +586,7 @@ export function WebcamPiP({ showToggleButton = true, className }: WebcamPiPProps
                   </div>
                 ) : null}
 
+                {/* Hidden video element — always needed as the camera source */}
                 <video
                   ref={videoRef}
                   autoPlay
@@ -271,11 +596,27 @@ export function WebcamPiP({ showToggleButton = true, className }: WebcamPiPProps
                     "w-full h-full object-cover",
                     // Mirror so it looks natural (like a mirror)
                     "-scale-x-100",
-                    hasPermission ? "opacity-100" : "opacity-0"
+                    // Show video when no blur effect, hide when blur is active
+                    hasPermission && !isBlurActive ? "opacity-100" : "opacity-0",
+                    // When blur is active, we still need the video in the DOM but hidden
+                    isBlurActive ? "absolute inset-0 pointer-events-none" : ""
                   )}
                 />
 
-                {/* "No Audio" indicator */}
+                {/* Canvas element — shown when blur effect is active */}
+                {isBlurActive && (
+                  <canvas
+                    ref={canvasRef}
+                    className={cn(
+                      "w-full h-full object-cover",
+                      // Mirror to match the video element
+                      "-scale-x-100",
+                      hasPermission ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                )}
+
+                {/* "VIDEO ONLY" indicator */}
                 {hasPermission && (
                   <div className="absolute bottom-1 right-1 rounded-sm bg-black/60 px-1 py-0.5">
                     <span className="text-[9px] text-white/50 font-medium">VIDEO ONLY</span>
@@ -288,4 +629,4 @@ export function WebcamPiP({ showToggleButton = true, className }: WebcamPiPProps
       )}
     </>
   )
-}
+})

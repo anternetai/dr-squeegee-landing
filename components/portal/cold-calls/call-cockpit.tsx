@@ -9,6 +9,7 @@ import {
   lazy,
   type ComponentType,
   type ReactNode,
+  type RefObject,
 } from "react"
 import useSWR from "swr"
 import {
@@ -38,6 +39,9 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
+  Circle,
+  Square,
+  CheckCircle,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -52,6 +56,9 @@ import type { CallState } from "@/lib/dialer/types"
 import { LiveNotes } from "./live-notes"
 import { KeyboardShortcuts } from "./keyboard-shortcuts"
 import { AIAnalysisPanel } from "./ai-analysis-panel"
+import { useMixedAudioRecording } from "@/lib/dialer/use-mixed-audio-recording"
+import { useSessionRecording, type SessionRecordingState } from "@/lib/dialer/use-session-recording"
+import type { WebcamPiPHandle } from "./webcam-pip"
 
 // ─── Safe lazy import helper ───────────────────────────────────────────────────
 
@@ -209,71 +216,6 @@ function loadQueuePosition(timezone: string, maxIndex: number): number {
 }
 
 
-// ─── Recording Hook ────────────────────────────────────────────────────────────
-
-function useCallRecording() {
-  const [recordingState, setRecordingState] = useState<RecordingState>("idle")
-  const [durationMs, setDurationMs] = useState(0)
-  const mediaRecorder = useRef<MediaRecorder | null>(null)
-  const chunks = useRef<Blob[]>([])
-  const startTime = useRef<number>(0)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  const startRecording = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/ogg"
-      const recorder = new MediaRecorder(stream, { mimeType })
-      chunks.current = []
-      startTime.current = Date.now()
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.current.push(e.data)
-      }
-      recorder.start(1000)
-      mediaRecorder.current = recorder
-      setRecordingState("recording")
-      setDurationMs(0)
-      timerRef.current = setInterval(() => {
-        setDurationMs(Date.now() - startTime.current)
-      }, 1000)
-    } catch {
-      setRecordingState("error")
-    }
-  }, [])
-
-  const stopRecording = useCallback((): Promise<Blob | null> => {
-    return new Promise((resolve) => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current)
-        timerRef.current = null
-      }
-      if (!mediaRecorder.current || mediaRecorder.current.state === "inactive") {
-        setRecordingState("idle")
-        resolve(null)
-        return
-      }
-      mediaRecorder.current.onstop = () => {
-        const blob = new Blob(chunks.current, {
-          type: mediaRecorder.current?.mimeType || "audio/webm",
-        })
-        mediaRecorder.current?.stream.getTracks().forEach((t) => t.stop())
-        setRecordingState("stopped")
-        resolve(blob)
-      }
-      mediaRecorder.current.stop()
-    })
-  }, [])
-
-  const reset = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    setRecordingState("idle")
-    setDurationMs(0)
-    chunks.current = []
-  }, [])
-
-  return { recordingState, durationMs, startRecording, stopRecording, reset }
-}
-
 // ─── Session Timer ─────────────────────────────────────────────────────────────
 
 function useSessionTimer() {
@@ -302,19 +244,19 @@ function LeadInfoCard({ lead }: { lead: DialerLead }) {
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1.5">
       <div className="flex items-center gap-2">
         <Building2 className="size-4 shrink-0 text-orange-500" />
-        <span className="max-w-[200px] truncate font-semibold">
+        <span data-pii className="max-w-[200px] truncate font-semibold">
           {lead.business_name || "Unknown Business"}
         </span>
       </div>
       {(lead.owner_name || lead.first_name) && (
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <User className="size-3.5 shrink-0" />
-          <span>{lead.owner_name || lead.first_name}</span>
+          <span data-pii>{lead.owner_name || lead.first_name}</span>
         </div>
       )}
       <div className="flex items-center gap-1.5 text-sm">
         <Phone className="size-3.5 shrink-0 text-muted-foreground" />
-        <span className="font-mono tabular-nums">{formatPhone(lead.phone_number)}</span>
+        <span data-pii className="font-mono tabular-nums">{formatPhone(lead.phone_number)}</span>
       </div>
       {lead.website && (
         <a
@@ -322,6 +264,7 @@ function LeadInfoCard({ lead }: { lead: DialerLead }) {
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1 text-sm text-blue-400 transition-colors hover:text-blue-300"
+          data-pii
         >
           <Globe className="size-3.5" />
           <span className="max-w-[120px] truncate">
@@ -406,6 +349,75 @@ function MobileSection({
   )
 }
 
+// ─── Session Recording Button ──────────────────────────────────────────────────
+
+function SessionRecButton({
+  state,
+  durationMs,
+  onStart,
+  onStop,
+}: {
+  state: SessionRecordingState
+  durationMs: number
+  onStart: () => void
+  onStop: () => void
+}) {
+  if (state === "done") {
+    return (
+      <div className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1.5 shrink-0">
+        <CheckCircle className="size-3.5 text-emerald-400" />
+        <span className="text-xs font-medium text-emerald-400">Saved</span>
+      </div>
+    )
+  }
+
+  if (state === "uploading") {
+    return (
+      <div className="flex items-center gap-1.5 rounded-lg border border-orange-500/30 bg-orange-500/5 px-2.5 py-1.5 shrink-0">
+        <Loader2 className="size-3.5 text-orange-400 animate-spin" />
+        <span className="text-xs text-orange-400">Uploading...</span>
+      </div>
+    )
+  }
+
+  if (state === "recording" || state === "stopping") {
+    return (
+      <button
+        onClick={onStop}
+        disabled={state === "stopping"}
+        className="flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 px-2.5 py-1.5 shrink-0 hover:bg-red-500/20 transition-colors"
+      >
+        <span className="size-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
+        <span className="text-xs font-medium text-red-400 tabular-nums">{formatDuration(durationMs)}</span>
+        <Square className="size-3 text-red-400 fill-red-400" />
+      </button>
+    )
+  }
+
+  if (state === "waiting-screen") {
+    return (
+      <div className="flex items-center gap-1.5 rounded-lg border border-orange-500/30 bg-orange-500/5 px-2.5 py-1.5 shrink-0">
+        <Loader2 className="size-3.5 text-orange-400 animate-spin" />
+        <span className="text-xs text-orange-400">Select screen...</span>
+      </div>
+    )
+  }
+
+  // Idle or error — show REC button
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={onStart}
+      className="gap-1.5 shrink-0 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
+      title="Start session recording (screen + webcam + audio)"
+    >
+      <Circle className="size-3 fill-red-500 text-red-500" />
+      <span className="text-xs font-bold">REC</span>
+    </Button>
+  )
+}
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export function CallCockpit() {
@@ -446,9 +458,31 @@ export function CallCockpit() {
   const currentCallStateRef = useRef<CallState>("idle")
   const sessionTime = useSessionTimer()
 
-  const { recordingState, durationMs, startRecording, stopRecording, reset: resetRecording } =
-    useCallRecording()
+  // Remote audio stream ref — set by PowerDialer's onRemoteStream callback
+  const remoteStreamRef = useRef<MediaStream | null>(null)
+
+  // Mixed audio recording (both sides of the call)
+  const { recordingState, durationMs, startRecording, stopRecording, reset: resetRecording, mixedStreamRef } =
+    useMixedAudioRecording({ remoteStreamRef })
   const isRecording = recordingState === "recording"
+
+  // Webcam ref for session recording
+  const webcamRef = useRef<WebcamPiPHandle>(null)
+  const webcamStreamForSessionRef = useRef<MediaStream | null>(null)
+  const webcamCanvasForSessionRef = useRef<HTMLCanvasElement | null>(null)
+
+  // Session video recording
+  const {
+    state: sessionRecState,
+    durationMs: sessionRecDurationMs,
+    error: sessionRecError,
+    startRecording: startSessionRec,
+    stopRecording: stopSessionRec,
+  } = useSessionRecording({
+    webcamStreamRef: webcamStreamForSessionRef,
+    webcamCanvasRef: webcamCanvasForSessionRef,
+    mixedAudioStreamRef: mixedStreamRef,
+  })
 
   // Recording blob from last call (for AI analysis)
   const lastCallBlobRef = useRef<Blob | null>(null)
@@ -596,36 +630,39 @@ export function CallCockpit() {
     return () => window.removeEventListener("keydown", onKey)
   }, [currentLead, saving, showNoteField, selectedOutcome, notes, demoDate, isRecording]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const runAIAnalysis = useCallback(
-    async (lead: DialerLead, outcome: ColdCallOutcome) => {
+  const uploadAndAnalyze = useCallback(
+    async (lead: DialerLead, blob: Blob, outcome: ColdCallOutcome) => {
       setAiResult({ panelState: "loading" })
       setAiPanelOpen(true)
       try {
-        const res = await fetch("/api/portal/dialer/summarize", {
+        // Upload audio blob to /api/portal/calls/transcribe — runs Whisper + AI analysis
+        const formData = new FormData()
+        const ext = blob.type.includes("ogg") ? "ogg" : "webm"
+        formData.append("audio", blob, `call_${Date.now()}.${ext}`)
+        formData.append("lead_id", lead.id)
+        formData.append("duration_seconds", String(Math.floor(durationMs / 1000)))
+
+        const res = await fetch("/api/portal/calls/transcribe", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            transcript: "",
-            businessName: lead.business_name || "",
-            leadContext: lead.notes || "",
-            leadId: lead.id,
-            phoneNumber: lead.phone_number || "",
-            durationSeconds: Math.floor(durationMs / 1000),
-          }),
+          body: formData,
         })
-        if (!res.ok) throw new Error("AI failed")
+
+        if (!res.ok) throw new Error("Transcription failed")
         const data = await res.json()
+
+        const analysis = data.analysis
         setAiResult({
           panelState: "ready",
-          suggestedDisposition: (data.disposition as DialerOutcome) || (outcome as DialerOutcome),
-          suggestedNotes: data.notes,
-          suggestedFollowUpDate: data.followUpDate,
-          summary: data.summary,
-          keyPoints: data.keyPoints || [],
-          objections: data.objections || [],
-          nextSteps: data.nextSteps || [],
-          grades: data.grades,
-          coachingTips: data.coachingTips,
+          suggestedDisposition: analysis?.disposition || (outcome as DialerOutcome),
+          suggestedNotes: analysis?.autoNotes,
+          suggestedFollowUpDate: analysis?.nextCallAt,
+          summary: analysis?.summary || data.rawTranscript || "Transcription complete.",
+          keyPoints: analysis?.keyPoints || [],
+          objections: analysis?.objections || [],
+          nextSteps: analysis?.nextSteps || [],
+          grades: analysis?.coaching?.grades,
+          coachingTips: analysis?.coaching?.tips,
+          rawTranscript: data.rawTranscript,
         })
       } catch {
         setAiResult({
@@ -694,9 +731,10 @@ export function CallCockpit() {
         // If a call is somehow still active, don't auto-dial — user will manually proceed
 
         // Run AI analysis in background if we have a recording (non-blocking)
-        if (blob && blob.size > 0 && outcome === "conversation") {
+        // Upload for ALL outcomes that have recordings (not just conversation)
+        if (blob && blob.size > 0) {
           setPendingLead(leadSnap)
-          runAIAnalysis(leadSnap, outcome).catch(console.error)
+          uploadAndAnalyze(leadSnap, blob, outcome).catch(console.error)
         }
       } catch (err) {
         console.error("Disposition error:", err)
@@ -719,7 +757,7 @@ export function CallCockpit() {
       resetForm,
       resetRecording,
       stopRecording,
-      runAIAnalysis,
+      uploadAndAnalyze,
       submitDisposition,
     ]
   )
@@ -772,6 +810,20 @@ export function CallCockpit() {
     finally { setSyncing(false) }
   }, [mutate])
 
+  // Remote stream callback from PowerDialer
+  const handleRemoteStream = useCallback((stream: MediaStream | null) => {
+    remoteStreamRef.current = stream
+  }, [])
+
+  // Start session recording — refresh webcam refs first
+  const handleStartSessionRecording = useCallback(async () => {
+    if (webcamRef.current) {
+      webcamStreamForSessionRef.current = webcamRef.current.getStream()
+      webcamCanvasForSessionRef.current = webcamRef.current.getCanvas()
+    }
+    await startSessionRec()
+  }, [startSessionRec])
+
   const handleAIAcceptAll = useCallback(
     async (data: { disposition: DialerOutcome; notes: string; followUpDate?: string }) => {
       if (!pendingLead) return
@@ -821,8 +873,16 @@ export function CallCockpit() {
 
       {/* Webcam PiP */}
       <Suspense fallback={null}>
-        <WebcamPiP showToggleButton className="shrink-0" />
+        <WebcamPiP ref={webcamRef} showToggleButton className="shrink-0" />
       </Suspense>
+
+      {/* Session REC button */}
+      <SessionRecButton
+        state={sessionRecState}
+        durationMs={sessionRecDurationMs}
+        onStart={handleStartSessionRecording}
+        onStop={stopSessionRec}
+      />
 
       {/* Stats */}
       <StatsBar sessionDials={sessionDials} sessionDemos={sessionDemos} timeToday={sessionTime} />
@@ -990,6 +1050,7 @@ export function CallCockpit() {
         autoDialActive={autoDialActive}
         onCancelAutoDial={() => setAutoDialActive(false)}
         onCallStateChange={handleCallStateChange}
+        onRemoteStream={handleRemoteStream}
         countdownSeconds={15}
       />
     </Suspense>

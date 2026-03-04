@@ -14,6 +14,8 @@ export interface UseTelnyxWebRTCReturn {
   toggleMute: () => void
   /** Reset callState back to "idle" — call after showing "Call Ended" briefly */
   setCallStateIdle: () => void
+  /** Ref to the remote audio MediaStream (callee's voice) — set when call connects */
+  remoteStreamRef: React.RefObject<MediaStream | null>
 }
 
 /**
@@ -34,6 +36,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
   const durationRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const callStartRef = useRef<number>(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const remoteStreamRef = useRef<MediaStream | null>(null)
   const callerIdRef = useRef<string | null>(null)
   const mountedRef = useRef(true)
   const callStateRef = useRef<CallState>("idle")
@@ -223,6 +226,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
       // Attach remote audio stream when available
       if (call.remoteStream && audioRef.current) {
         audioRef.current.srcObject = call.remoteStream
+        remoteStreamRef.current = call.remoteStream as MediaStream
       }
 
       switch (state) {
@@ -248,6 +252,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
           killAudio()
           stopTimer()
           callRef.current = null
+          remoteStreamRef.current = null
           updateCallState("disconnected")
           break
       }
@@ -339,6 +344,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     // 3. Tell the SDK to hang up the SIP session
     const call = callRef.current
     callRef.current = null
+    remoteStreamRef.current = null
     
     if (call) {
       try {
@@ -401,5 +407,6 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     hangUp,
     toggleMute,
     setCallStateIdle,
+    remoteStreamRef,
   }
 }

@@ -124,6 +124,15 @@
   }
 }
 
+/* PII blur — activated when session recording is active */
+.recording-active [data-pii] {
+  filter: blur(8px);
+  transition: filter 0.2s ease;
+}
+.recording-active [data-pii]:hover {
+  filter: blur(8px); /* Stay blurred even on hover */
+}
+
 /* Phone Input Light Theme Styles */
 .phone-input-light {
   display: flex;

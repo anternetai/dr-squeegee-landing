@@ -27,6 +27,8 @@ interface PowerDialerProps {
   onCancelAutoDial?: () => void
   /** Called whenever callState changes — lets parent sync recording etc. */
   onCallStateChange?: (state: CallState) => void
+  /** Called when remote audio stream becomes available or is cleared */
+  onRemoteStream?: (stream: MediaStream | null) => void
   className?: string
 }
 
@@ -77,6 +79,7 @@ export function PowerDialer({
   autoDialActive = false,
   onCancelAutoDial,
   onCallStateChange,
+  onRemoteStream,
   className,
 }: PowerDialerProps) {
   const [countdown, setCountdown] = useState(countdownSeconds)
@@ -100,6 +103,7 @@ export function PowerDialer({
     toggleMute,
     isMuted,
     setCallStateIdle,
+    remoteStreamRef,
   } = useTelnyxWebRTC()
 
   const makeCall = useCallback(
@@ -133,6 +137,19 @@ export function PowerDialer({
       onCallStateChange?.(callState)
     }
   }, [callState, onCallStateChange])
+
+  // ─── Relay remote stream to parent ─────────────────────────────────────────
+
+  useEffect(() => {
+    // When call becomes active, relay the remote stream
+    if (callState === "connected" && remoteStreamRef.current) {
+      onRemoteStream?.(remoteStreamRef.current)
+    }
+    // When call ends, clear it
+    if (callState === "disconnected" || callState === "idle") {
+      onRemoteStream?.(null)
+    }
+  }, [callState, onRemoteStream, remoteStreamRef])
 
   // ─── Auto-reset: disconnected → idle after 2s ─────────────────────────────
 
