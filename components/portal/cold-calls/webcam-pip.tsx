@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react"
-import { Video, VideoOff, Minus, GripHorizontal, Sparkles } from "lucide-react"
+import { Video, VideoOff, Minus, GripHorizontal, Sparkles, Mic } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
@@ -312,6 +312,104 @@ function EffectPicker({
   )
 }
 
+// ─── Audio Level Meter ──────────────────────────────────────────────────────
+
+function useAudioLevel(isActive: boolean) {
+  const [level, setLevel] = useState(0)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const animRef = useRef<number>(0)
+
+  useEffect(() => {
+    if (!isActive) {
+      // Cleanup
+      if (animRef.current) cancelAnimationFrame(animRef.current)
+      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {})
+      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop())
+      audioCtxRef.current = null
+      analyserRef.current = null
+      streamRef.current = null
+      setLevel(0)
+      return
+    }
+
+    let cancelled = false
+
+    async function start() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return }
+        streamRef.current = stream
+
+        const ctx = new AudioContext()
+        audioCtxRef.current = ctx
+        const source = ctx.createMediaStreamSource(stream)
+        const analyser = ctx.createAnalyser()
+        analyser.fftSize = 256
+        analyser.smoothingTimeConstant = 0.5
+        source.connect(analyser)
+        analyserRef.current = analyser
+
+        const data = new Uint8Array(analyser.frequencyBinCount)
+
+        function tick() {
+          if (cancelled) return
+          analyser.getByteFrequencyData(data)
+          // Average of lower frequencies (voice range)
+          let sum = 0
+          const count = Math.min(32, data.length)
+          for (let i = 0; i < count; i++) sum += data[i]
+          const avg = sum / count / 255 // 0-1
+          setLevel(avg)
+          animRef.current = requestAnimationFrame(tick)
+        }
+        animRef.current = requestAnimationFrame(tick)
+      } catch {
+        // Mic denied — just show 0
+      }
+    }
+
+    start()
+
+    return () => {
+      cancelled = true
+      if (animRef.current) cancelAnimationFrame(animRef.current)
+      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {})
+      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop())
+    }
+  }, [isActive])
+
+  return level
+}
+
+function AudioLevelBar({ level }: { level: number }) {
+  const bars = 5
+  const filledBars = Math.round(level * bars * 3) // multiply to make it more sensitive
+
+  return (
+    <div className="flex items-center gap-1">
+      <Mic className="h-2.5 w-2.5 text-white/40" />
+      <div className="flex items-end gap-px">
+        {Array.from({ length: bars }).map((_, i) => {
+          const active = i < Math.min(filledBars, bars)
+          const color = i < 3 ? "bg-emerald-400" : i < 4 ? "bg-yellow-400" : "bg-red-400"
+          return (
+            <div
+              key={i}
+              className={cn(
+                "w-1 rounded-full transition-all duration-75",
+                active ? color : "bg-white/15"
+              )}
+              style={{ height: `${6 + i * 2}px` }}
+            />
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 interface WebcamPiPProps {
@@ -324,6 +422,8 @@ interface WebcamPiPProps {
 export interface WebcamPiPHandle {
   getStream(): MediaStream | null
   getCanvas(): HTMLCanvasElement | null
+  /** Programmatically enable the webcam (e.g., when starting session recording) */
+  enable(): void
 }
 
 /**
@@ -350,14 +450,11 @@ export const WebcamPiP = forwardRef<WebcamPiPHandle, WebcamPiPProps>(function We
   const pipRef = useRef<HTMLDivElement>(null)
   const dragOffset = useRef({ x: 0, y: 0 })
 
-  // Expose stream + canvas to parent via ref
-  useImperativeHandle(ref, () => ({
-    getStream: () => streamRef.current,
-    getCanvas: () => canvasRef.current,
-  }), [])
-
   const bgEffect = prefs.bgEffect ?? "none"
   const isBlurActive = bgEffect !== "none" && prefs.enabled && !prefs.minimized && hasPermission === true
+
+  // Audio level meter — active when webcam is showing
+  const audioLevel = useAudioLevel(prefs.enabled && !prefs.minimized)
 
   // Preload segmenter when blur is activated
   useEffect(() => {
@@ -424,6 +521,19 @@ export const WebcamPiP = forwardRef<WebcamPiPHandle, WebcamPiPProps>(function We
       return next
     })
   }, [])
+
+  // Expose stream + canvas to parent via ref
+  useImperativeHandle(ref, () => ({
+    getStream: () => streamRef.current,
+    getCanvas: () => canvasRef.current,
+    enable: () => {
+      if (!prefs.enabled) {
+        updatePrefs({ enabled: true, minimized: false })
+      } else if (prefs.minimized) {
+        updatePrefs({ minimized: false })
+      }
+    },
+  }), [prefs.enabled, prefs.minimized, updatePrefs])
 
   const toggleEnabled = useCallback(() => {
     updatePrefs({ enabled: !prefs.enabled })
@@ -616,10 +726,10 @@ export const WebcamPiP = forwardRef<WebcamPiPHandle, WebcamPiPProps>(function We
                   />
                 )}
 
-                {/* "VIDEO ONLY" indicator */}
+                {/* Audio level indicator */}
                 {hasPermission && (
-                  <div className="absolute bottom-1 right-1 rounded-sm bg-black/60 px-1 py-0.5">
-                    <span className="text-[9px] text-white/50 font-medium">VIDEO ONLY</span>
+                  <div className="absolute bottom-1 right-1 rounded-sm bg-black/60 px-1.5 py-0.5">
+                    <AudioLevelBar level={audioLevel} />
                   </div>
                 )}
               </div>

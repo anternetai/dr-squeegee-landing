@@ -815,9 +815,13 @@ export function CallCockpit() {
     remoteStreamRef.current = stream
   }, [])
 
-  // Start session recording — refresh webcam refs first
+  // Start session recording — auto-enable webcam, then refresh refs
   const handleStartSessionRecording = useCallback(async () => {
     if (webcamRef.current) {
+      // Auto-enable webcam if not already on
+      webcamRef.current.enable()
+      // Small delay to let camera start before grabbing refs
+      await new Promise((r) => setTimeout(r, 500))
       webcamStreamForSessionRef.current = webcamRef.current.getStream()
       webcamCanvasForSessionRef.current = webcamRef.current.getCanvas()
     }
