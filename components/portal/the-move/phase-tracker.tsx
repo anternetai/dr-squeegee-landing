@@ -7,8 +7,10 @@ export function PhaseTracker() {
   const current = getCurrentPhase()
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
-      <h2 className="mb-4 text-sm font-semibold text-zinc-400 uppercase tracking-wide">The 7-Month Plan</h2>
+    <div className="rounded-2xl border border-stone-800/50 bg-gradient-to-b from-stone-950 to-black p-6">
+      <h2 className="mb-6 text-[10px] font-semibold tracking-[0.3em] text-stone-500 uppercase">
+        The 9-Month Blueprint
+      </h2>
 
       {/* Desktop: horizontal */}
       <div className="hidden md:flex items-start gap-0">
@@ -20,35 +22,45 @@ export function PhaseTracker() {
               <div className="flex items-center">
                 <div
                   className={cn(
-                    "size-4 rounded-full border-2 shrink-0",
+                    "size-5 rounded-full border-2 shrink-0 transition-all",
                     isCompleted
-                      ? "bg-orange-500 border-orange-500"
+                      ? "bg-amber-500 border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.4)]"
                       : isCurrent
-                        ? "border-orange-500 bg-transparent"
-                        : "border-zinc-700 bg-transparent"
+                        ? "border-amber-400 bg-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
+                        : "border-stone-700 bg-transparent"
                   )}
                 />
                 {i < PHASES.length - 1 && (
                   <div
                     className={cn(
-                      "h-0.5 w-full",
-                      isCompleted ? "bg-orange-500" : "bg-zinc-800"
+                      "h-px w-full",
+                      isCompleted ? "bg-amber-500/50" : "bg-stone-800"
                     )}
                   />
                 )}
               </div>
-              <div className="mt-2 pr-4">
-                <p className={cn("text-sm font-bold", isCurrent ? "text-orange-400" : "text-zinc-300")}>
-                  {phase.emoji} {phase.name}
+              <div className="mt-3 pr-6">
+                <p
+                  className={cn(
+                    "text-sm font-black tracking-tight",
+                    isCurrent ? "text-amber-400" : isCompleted ? "text-stone-400" : "text-stone-600"
+                  )}
+                >
+                  {phase.name}
                 </p>
-                <p className="text-xs text-zinc-600">
+                <p className="mt-0.5 text-[10px] tracking-wide text-stone-600">
                   {new Date(phase.startDate + "T00:00:00").toLocaleDateString("en-US", { month: "short" })}
-                  {" — "}
-                  {new Date(phase.endDate + "T00:00:00").toLocaleDateString("en-US", { month: "short" })}
+                  {" - "}
+                  {new Date(phase.endDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}
                 </p>
-                <ul className="mt-1 space-y-0.5">
+                <ul className="mt-2 space-y-1">
                   {phase.milestones.map((m) => (
-                    <li key={m} className="text-xs text-zinc-500">• {m}</li>
+                    <li key={m} className={cn(
+                      "text-xs",
+                      isCurrent ? "text-stone-400" : "text-stone-600"
+                    )}>
+                      {m}
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -57,38 +69,45 @@ export function PhaseTracker() {
         })}
       </div>
 
-      {/* Mobile: vertical */}
-      <div className="md:hidden space-y-4">
-        {PHASES.map((phase) => {
+      {/* Mobile: vertical timeline */}
+      <div className="md:hidden space-y-0">
+        {PHASES.map((phase, i) => {
           const isCompleted = phase.endDate < new Date().toISOString().split("T")[0]
           const isCurrent = phase.name === current.name
           return (
-            <div key={phase.name} className="flex gap-3">
+            <div key={phase.name} className="flex gap-4">
               <div className="flex flex-col items-center">
                 <div
                   className={cn(
-                    "size-4 rounded-full border-2 shrink-0",
+                    "size-5 rounded-full border-2 shrink-0",
                     isCompleted
-                      ? "bg-orange-500 border-orange-500"
+                      ? "bg-amber-500 border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.4)]"
                       : isCurrent
-                        ? "border-orange-500 bg-transparent"
-                        : "border-zinc-700 bg-transparent"
+                        ? "border-amber-400 bg-amber-500/20"
+                        : "border-stone-700 bg-transparent"
                   )}
                 />
-                <div className={cn("w-0.5 flex-1 mt-1", isCompleted ? "bg-orange-500" : "bg-zinc-800")} />
+                {i < PHASES.length - 1 && (
+                  <div className={cn("w-px flex-1", isCompleted ? "bg-amber-500/50" : "bg-stone-800")} />
+                )}
               </div>
-              <div className="pb-2">
-                <p className={cn("text-sm font-bold", isCurrent ? "text-orange-400" : "text-zinc-300")}>
-                  {phase.emoji} {phase.name}
+              <div className="pb-6">
+                <p className={cn(
+                  "text-sm font-black tracking-tight",
+                  isCurrent ? "text-amber-400" : isCompleted ? "text-stone-400" : "text-stone-600"
+                )}>
+                  {phase.name}
                 </p>
-                <p className="text-xs text-zinc-600">
+                <p className="text-[10px] tracking-wide text-stone-600">
                   {new Date(phase.startDate + "T00:00:00").toLocaleDateString("en-US", { month: "short" })}
-                  {" — "}
-                  {new Date(phase.endDate + "T00:00:00").toLocaleDateString("en-US", { month: "short" })}
+                  {" - "}
+                  {new Date(phase.endDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", year: "2-digit" })}
                 </p>
-                <ul className="mt-1 space-y-0.5">
+                <ul className="mt-1.5 space-y-0.5">
                   {phase.milestones.map((m) => (
-                    <li key={m} className="text-xs text-zinc-500">• {m}</li>
+                    <li key={m} className={cn("text-xs", isCurrent ? "text-stone-400" : "text-stone-600")}>
+                      {m}
+                    </li>
                   ))}
                 </ul>
               </div>

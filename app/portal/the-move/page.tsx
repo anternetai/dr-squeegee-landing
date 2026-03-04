@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { MapPin } from "lucide-react"
 
 import { MoveHero } from "@/components/portal/the-move/move-hero"
 import { PhaseTracker } from "@/components/portal/the-move/phase-tracker"
@@ -19,7 +18,7 @@ import type { DoorKnockSession } from "@/lib/the-move/types"
 
 const ADMIN_ID = "bba79829-7852-4f81-aa2e-393650138e7c"
 
-export default function TheMoveePage() {
+export default function TheMovePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<MoveStats | null>(null)
@@ -54,7 +53,6 @@ export default function TheMoveePage() {
   }, [loading, fetchData])
 
   function handleKnockSubmit(session: DoorKnockSession) {
-    // Optimistic: add/update in list, then refetch stats
     setSessions((prev) => {
       const exists = prev.findIndex((s) => s.id === session.id)
       if (exists >= 0) {
@@ -65,7 +63,6 @@ export default function TheMoveePage() {
       return [session, ...prev]
     })
     setEditSession(null)
-    // Refetch stats to update scorecards
     fetch("/api/portal/the-move/stats").then((r) => { if (r.ok) r.json().then(setStats) })
   }
 
@@ -76,25 +73,41 @@ export default function TheMoveePage() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="size-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
+      <div className="flex h-[60vh] items-center justify-center bg-black">
+        <div className="size-8 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-4 pb-24 lg:p-6 lg:pb-6">
-      <MoveHero stats={stats} />
-      <PhaseTracker />
-      <ScorecardSection stats={stats} />
+    <div className="min-h-screen bg-black">
+      <div className="mx-auto max-w-5xl space-y-5 p-4 pb-28 lg:p-6 lg:pb-6">
+        {/* Motivational header */}
+        <div className="pt-2 pb-1">
+          <p className="text-[10px] tracking-[0.4em] text-stone-600 uppercase">
+            Charlotte to Brooklyn
+          </p>
+        </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ClientProgress stats={stats} />
-        <ConversionFunnel stats={stats} />
+        <MoveHero stats={stats} />
+        <PhaseTracker />
+        <ScorecardSection stats={stats} />
+
+        <div className="grid gap-5 lg:grid-cols-2">
+          <ClientProgress stats={stats} />
+          <ConversionFunnel stats={stats} />
+        </div>
+
+        <RevenueBridge stats={stats} />
+        <KnockHistory sessions={sessions} onEdit={handleEdit} />
+
+        {/* Vision board footer */}
+        <div className="pt-4 pb-2 text-center">
+          <p className="text-[10px] tracking-[0.5em] text-stone-700 uppercase">
+            Every dial gets you closer. Every door gets you closer. Do the work.
+          </p>
+        </div>
       </div>
-
-      <RevenueBridge stats={stats} />
-      <KnockHistory sessions={sessions} onEdit={handleEdit} />
 
       <KnockLogger
         open={loggerOpen}
@@ -107,12 +120,11 @@ export default function TheMoveePage() {
       />
 
       {/* Mobile sticky trigger */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 lg:hidden bg-zinc-950/90 backdrop-blur border-t border-zinc-800">
+      <div className="fixed bottom-0 left-0 right-0 p-4 lg:hidden bg-black/90 backdrop-blur-lg border-t border-stone-800/50">
         <Button
           onClick={() => setLoggerOpen(true)}
-          className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-base"
+          className="w-full h-14 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-black text-base tracking-wide uppercase shadow-[0_0_20px_rgba(245,158,11,0.3)]"
         >
-          <MapPin className="mr-2 size-4" />
           Log Knock Session
         </Button>
       </div>

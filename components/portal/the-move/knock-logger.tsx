@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { NEIGHBORHOODS } from "@/lib/the-move/constants"
@@ -129,25 +129,25 @@ export function KnockLogger({ open, onOpenChange, editSession, onSubmit }: Knock
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto bg-zinc-950 border-zinc-800">
+      <SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto border-stone-800/50 bg-gradient-to-b from-stone-950 to-black">
         <SheetHeader>
-          <SheetTitle className="text-white">
-            {editSession ? "Edit Knock Session" : "Log Knock Session"}
+          <SheetTitle className="text-[10px] font-semibold tracking-[0.3em] text-stone-400 uppercase">
+            {editSession ? "Edit Session" : "Log Knock Session"}
           </SheetTitle>
         </SheetHeader>
 
         <div className="mt-4 space-y-4">
           {error && (
-            <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-3 py-2 text-sm text-red-400">
+            <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-sm text-red-400">
               {error}
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <Label className="text-zinc-400">Neighborhood</Label>
+              <Label className="text-[10px] tracking-wide text-stone-500 uppercase">Neighborhood</Label>
               <Select value={neighborhood} onValueChange={setNeighborhood}>
-                <SelectTrigger className="mt-1 bg-zinc-900 border-zinc-800">
+                <SelectTrigger className="mt-1 border-stone-800/50 bg-stone-900/50">
                   <SelectValue placeholder="Select area..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -160,96 +160,96 @@ export function KnockLogger({ open, onOpenChange, editSession, onSubmit }: Knock
             </div>
 
             <div className="col-span-2">
-              <Label className="text-zinc-400">Street (optional)</Label>
+              <Label className="text-[10px] tracking-wide text-stone-500 uppercase">Street</Label>
               <Input
                 value={street}
                 onChange={(e) => setStreet(e.target.value)}
                 placeholder="e.g. 1200 block Providence"
-                className="mt-1 bg-zinc-900 border-zinc-800"
+                className="mt-1 border-stone-800/50 bg-stone-900/50"
               />
             </div>
 
             <div>
-              <Label className="text-zinc-400">Doors Knocked</Label>
+              <Label className="text-[10px] tracking-wide text-stone-500 uppercase">Knocked</Label>
               <Input
                 type="text"
                 inputMode="numeric"
                 value={doorsKnocked}
                 onChange={(e) => setDoorsKnocked(e.target.value)}
                 placeholder="0"
-                className="mt-1 bg-zinc-900 border-zinc-800 text-lg h-12"
+                className="mt-1 border-stone-800/50 bg-stone-900/50 text-xl font-black h-14 text-center"
               />
             </div>
             <div>
-              <Label className="text-zinc-400">Doors Opened</Label>
+              <Label className="text-[10px] tracking-wide text-stone-500 uppercase">Opened</Label>
               <Input
                 type="text"
                 inputMode="numeric"
                 value={doorsOpened}
                 onChange={(e) => setDoorsOpened(e.target.value)}
                 placeholder="0"
-                className="mt-1 bg-zinc-900 border-zinc-800 text-lg h-12"
+                className="mt-1 border-stone-800/50 bg-stone-900/50 text-xl font-black h-14 text-center"
               />
             </div>
             <div>
-              <Label className="text-zinc-400">Pitches Given</Label>
+              <Label className="text-[10px] tracking-wide text-stone-500 uppercase">Pitched</Label>
               <Input
                 type="text"
                 inputMode="numeric"
                 value={pitchesGiven}
                 onChange={(e) => setPitchesGiven(e.target.value)}
                 placeholder="0"
-                className="mt-1 bg-zinc-900 border-zinc-800 text-lg h-12"
+                className="mt-1 border-stone-800/50 bg-stone-900/50 text-xl font-black h-14 text-center"
               />
             </div>
             <div>
-              <Label className="text-zinc-400">Jobs Closed</Label>
+              <Label className="text-[10px] tracking-wide text-stone-500 uppercase">Closed</Label>
               <Input
                 type="text"
                 inputMode="numeric"
                 value={jobsClosed}
                 onChange={(e) => setJobsClosed(e.target.value)}
                 placeholder="0"
-                className="mt-1 bg-zinc-900 border-zinc-800 text-lg h-12"
+                className="mt-1 border-stone-800/50 bg-stone-900/50 text-xl font-black h-14 text-center"
               />
             </div>
 
             <div>
-              <Label className="text-zinc-400">Revenue ($)</Label>
+              <Label className="text-[10px] tracking-wide text-stone-500 uppercase">Revenue ($)</Label>
               <Input
                 type="text"
                 inputMode="decimal"
                 value={revenueClosed}
                 onChange={(e) => setRevenueClosed(e.target.value)}
                 placeholder="0"
-                className="mt-1 bg-zinc-900 border-zinc-800"
+                className="mt-1 border-stone-800/50 bg-stone-900/50"
               />
             </div>
             <div>
-              <Label className="text-zinc-400">Minutes</Label>
+              <Label className="text-[10px] tracking-wide text-stone-500 uppercase">Minutes</Label>
               <Input
                 type="text"
                 inputMode="numeric"
                 value={sessionMinutes}
                 onChange={(e) => setSessionMinutes(e.target.value)}
                 placeholder="60"
-                className="mt-1 bg-zinc-900 border-zinc-800"
+                className="mt-1 border-stone-800/50 bg-stone-900/50"
               />
             </div>
 
             <div>
-              <Label className="text-zinc-400">Date</Label>
+              <Label className="text-[10px] tracking-wide text-stone-500 uppercase">Date</Label>
               <Input
                 type="date"
                 value={sessionDate}
                 onChange={(e) => setSessionDate(e.target.value)}
-                className="mt-1 bg-zinc-900 border-zinc-800"
+                className="mt-1 border-stone-800/50 bg-stone-900/50"
               />
             </div>
             <div>
-              <Label className="text-zinc-400">Weather</Label>
+              <Label className="text-[10px] tracking-wide text-stone-500 uppercase">Weather</Label>
               <Select value={weather} onValueChange={setWeather}>
-                <SelectTrigger className="mt-1 bg-zinc-900 border-zinc-800">
+                <SelectTrigger className="mt-1 border-stone-800/50 bg-stone-900/50">
                   <SelectValue placeholder="Optional" />
                 </SelectTrigger>
                 <SelectContent>
@@ -261,12 +261,12 @@ export function KnockLogger({ open, onOpenChange, editSession, onSubmit }: Knock
             </div>
 
             <div className="col-span-2">
-              <Label className="text-zinc-400">Notes</Label>
+              <Label className="text-[10px] tracking-wide text-stone-500 uppercase">Notes</Label>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Any observations..."
-                className="mt-1 bg-zinc-900 border-zinc-800"
+                className="mt-1 border-stone-800/50 bg-stone-900/50"
                 rows={2}
               />
             </div>
@@ -275,9 +275,9 @@ export function KnockLogger({ open, onOpenChange, editSession, onSubmit }: Knock
           <Button
             onClick={handleSubmit}
             disabled={saving}
-            className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-base"
+            className="w-full h-14 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-black text-base tracking-wide uppercase shadow-[0_0_20px_rgba(245,158,11,0.3)]"
           >
-            {saving ? "Saving..." : editSession ? "Update Session" : "Log Session"}
+            {saving ? "Saving..." : editSession ? "Update Session" : "Log It"}
           </Button>
         </div>
       </SheetContent>
