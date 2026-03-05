@@ -16,28 +16,39 @@ interface NoiseGateState {
   destination: MediaStreamAudioDestinationNode
   interval: ReturnType<typeof setInterval>
   holdTimer: ReturnType<typeof setTimeout> | null
-  originalTrack: MediaStreamTrack
+  micStream: MediaStream // the fresh mic stream we acquired
+  originalSenderTrack: MediaStreamTrack // so we can restore on removal
 }
 
 /**
  * Create a noise gate that silences the mic when you're not speaking.
- * Uses Web Audio API: source → analyser → gainNode → destination.
- * When RMS volume is below the threshold, gain = 0 (silent).
- * When above, gain = 1 (open). A hold time prevents cutting between words.
+ * Acquires a FRESH mic stream (separate from Telnyx's) and processes it
+ * through: source → analyser → gainNode → destination.
+ * When RMS volume is below the threshold, gain = 0 (dead silent).
+ * When above, gain = 1 (open). Hold time prevents cutting between words.
+ *
+ * Returns the gated output stream ready to be swapped onto the RTC sender.
  */
-function createNoiseGate(
-  stream: MediaStream,
-  thresholdDb: number = -40,
-  holdMs: number = 280,
-): NoiseGateState {
+async function createNoiseGate(
+  audioConstraints: MediaTrackConstraints,
+  thresholdDb: number = -35,
+  holdMs: number = 300,
+): Promise<NoiseGateState & { gatedStream: MediaStream }> {
+  // Acquire a FRESH mic stream — this is key. We can't reuse Telnyx's
+  // track because it's already consumed by the RTC pipeline.
+  const micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints })
+
   const ctx = new AudioContext()
-  const source = ctx.createMediaStreamSource(stream)
+  // Resume in case browser suspended it
+  if (ctx.state === "suspended") await ctx.resume()
+
+  const source = ctx.createMediaStreamSource(micStream)
   const analyser = ctx.createAnalyser()
   const gainNode = ctx.createGain()
   const destination = ctx.createMediaStreamDestination()
 
-  analyser.fftSize = 512
-  analyser.smoothingTimeConstant = 0.3
+  analyser.fftSize = 2048
+  analyser.smoothingTimeConstant = 0.2
 
   source.connect(analyser)
   analyser.connect(gainNode)
@@ -48,6 +59,7 @@ function createNoiseGate(
 
   const dataArray = new Float32Array(analyser.fftSize)
   let holdTimer: ReturnType<typeof setTimeout> | null = null
+  let logCounter = 0
 
   const interval = setInterval(() => {
     if (ctx.state === "closed") return
@@ -60,6 +72,12 @@ function createNoiseGate(
     }
     const rms = Math.sqrt(sum / dataArray.length)
     const db = 20 * Math.log10(rms + 1e-10)
+
+    // Debug: log dB level every ~1s so we can see actual levels
+    logCounter++
+    if (logCounter % 33 === 0) {
+      console.log(`[NoiseGate] dB: ${db.toFixed(1)} | gate: ${gainNode.gain.value === 1 ? "OPEN" : "CLOSED"} | threshold: ${thresholdDb}`)
+    }
 
     if (db > thresholdDb) {
       // Voice detected — open the gate immediately
@@ -85,7 +103,9 @@ function createNoiseGate(
     destination,
     interval,
     holdTimer,
-    originalTrack: stream.getAudioTracks()[0],
+    micStream,
+    originalSenderTrack: micStream.getAudioTracks()[0], // placeholder, overwritten by caller
+    gatedStream: destination.stream,
   }
 }
 
@@ -97,6 +117,8 @@ function destroyNoiseGate(gate: NoiseGateState | null) {
   try { gate.analyser.disconnect() } catch {}
   try { gate.gainNode.disconnect() } catch {}
   try { gate.ctx.close() } catch {}
+  // Stop the fresh mic stream we acquired
+  try { gate.micStream.getTracks().forEach((t) => t.stop()) } catch {}
 }
 
 export interface UseTelnyxWebRTCReturn {
@@ -405,7 +427,10 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
   }, [])
 
   // ─── Noise Gate: apply / remove on active calls ──────────────────────────
-  const applyNoiseGate = useCallback((call: any) => {
+  const selectedInputDeviceIdRef = useRef<string | null>(null)
+  useEffect(() => { selectedInputDeviceIdRef.current = selectedInputDeviceId }, [selectedInputDeviceId])
+
+  const applyNoiseGate = useCallback(async (call: any) => {
     // Clean up any existing gate first
     destroyNoiseGate(noiseGateRef.current)
     noiseGateRef.current = null
@@ -415,49 +440,69 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
 
     try {
       const pc: RTCPeerConnection | null = call.peer?.instance ?? call.peerConnection ?? null
-      if (!pc) return
+      if (!pc) {
+        console.warn("[NoiseGate] No peer connection found")
+        return
+      }
 
       const sender = pc.getSenders().find((s: RTCRtpSender) => s.track?.kind === "audio")
-      if (!sender?.track) return
+      if (!sender?.track) {
+        console.warn("[NoiseGate] No audio sender track found")
+        return
+      }
 
-      // Create a MediaStream from the sender's current mic track
-      const micStream = new MediaStream([sender.track])
-      const gate = createNoiseGate(micStream, -40, 280)
+      // Build audio constraints matching what we use for calls
+      const audioConstraints: MediaTrackConstraints = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: false,
+      }
+      const devId = selectedInputDeviceIdRef.current
+      if (devId && devId !== "default") {
+        audioConstraints.deviceId = { exact: devId }
+      }
+
+      // Create noise gate with a FRESH mic stream
+      const gate = await createNoiseGate(audioConstraints, -35, 300)
+      // Save the original sender track so we can restore it
+      gate.originalSenderTrack = sender.track
       noiseGateRef.current = gate
 
-      // Replace the sender's track with the gated output
-      const gatedTrack = gate.destination.stream.getAudioTracks()[0]
+      // Swap the sender's track with our gated output
+      const gatedTrack = gate.gatedStream.getAudioTracks()[0]
       if (gatedTrack) {
-        sender.replaceTrack(gatedTrack).catch((e: any) => {
-          console.warn("[Telnyx] Failed to apply noise gate track:", e)
-          destroyNoiseGate(gate)
-          noiseGateRef.current = null
-        })
-        console.log("[Telnyx] 🔇 Noise gate ACTIVE — mic silent when not speaking")
+        await sender.replaceTrack(gatedTrack)
+        console.log("[NoiseGate] ✅ ACTIVE — fresh mic stream → gate → RTC sender")
+      } else {
+        console.warn("[NoiseGate] No gated track produced")
+        destroyNoiseGate(gate)
+        noiseGateRef.current = null
       }
     } catch (e) {
-      console.warn("[Telnyx] Noise gate setup failed:", e)
+      console.warn("[NoiseGate] Setup failed:", e)
+      destroyNoiseGate(noiseGateRef.current)
+      noiseGateRef.current = null
     }
   }, [])
 
-  const removeNoiseGate = useCallback((call: any) => {
+  const removeNoiseGate = useCallback(async (call: any) => {
     const gate = noiseGateRef.current
     if (!gate) return
 
     try {
-      // Restore the original mic track on the sender
+      // Restore the original sender track
       const pc: RTCPeerConnection | null = call?.peer?.instance ?? call?.peerConnection ?? null
-      if (pc) {
+      if (pc && gate.originalSenderTrack && !gate.originalSenderTrack.readyState?.includes?.("ended")) {
         const sender = pc.getSenders().find((s: RTCRtpSender) => s.track?.kind === "audio")
-        if (sender && gate.originalTrack) {
-          sender.replaceTrack(gate.originalTrack).catch(() => {})
+        if (sender) {
+          await sender.replaceTrack(gate.originalSenderTrack)
         }
       }
     } catch {}
 
     destroyNoiseGate(gate)
     noiseGateRef.current = null
-    console.log("[Telnyx] 🔊 Noise gate REMOVED — mic always open")
+    console.log("[NoiseGate] 🔊 REMOVED — mic always open")
   }, [])
 
   // Keep the ref in sync with state so callbacks see the latest value
