@@ -8,6 +8,97 @@ export interface AudioDevice {
   label: string
 }
 
+interface NoiseGateState {
+  ctx: AudioContext
+  source: MediaStreamAudioSourceNode
+  analyser: AnalyserNode
+  gainNode: GainNode
+  destination: MediaStreamAudioDestinationNode
+  interval: ReturnType<typeof setInterval>
+  holdTimer: ReturnType<typeof setTimeout> | null
+  originalTrack: MediaStreamTrack
+}
+
+/**
+ * Create a noise gate that silences the mic when you're not speaking.
+ * Uses Web Audio API: source → analyser → gainNode → destination.
+ * When RMS volume is below the threshold, gain = 0 (silent).
+ * When above, gain = 1 (open). A hold time prevents cutting between words.
+ */
+function createNoiseGate(
+  stream: MediaStream,
+  thresholdDb: number = -40,
+  holdMs: number = 280,
+): NoiseGateState {
+  const ctx = new AudioContext()
+  const source = ctx.createMediaStreamSource(stream)
+  const analyser = ctx.createAnalyser()
+  const gainNode = ctx.createGain()
+  const destination = ctx.createMediaStreamDestination()
+
+  analyser.fftSize = 512
+  analyser.smoothingTimeConstant = 0.3
+
+  source.connect(analyser)
+  analyser.connect(gainNode)
+  gainNode.connect(destination)
+
+  // Start closed (silent)
+  gainNode.gain.value = 0
+
+  const dataArray = new Float32Array(analyser.fftSize)
+  let holdTimer: ReturnType<typeof setTimeout> | null = null
+
+  const interval = setInterval(() => {
+    if (ctx.state === "closed") return
+    analyser.getFloatTimeDomainData(dataArray)
+
+    // Calculate RMS volume
+    let sum = 0
+    for (let i = 0; i < dataArray.length; i++) {
+      sum += dataArray[i] * dataArray[i]
+    }
+    const rms = Math.sqrt(sum / dataArray.length)
+    const db = 20 * Math.log10(rms + 1e-10)
+
+    if (db > thresholdDb) {
+      // Voice detected — open the gate immediately
+      gainNode.gain.value = 1
+      if (holdTimer) {
+        clearTimeout(holdTimer)
+        holdTimer = null
+      }
+    } else if (gainNode.gain.value === 1 && !holdTimer) {
+      // Below threshold but gate is open — start hold timer
+      holdTimer = setTimeout(() => {
+        gainNode.gain.value = 0
+        holdTimer = null
+      }, holdMs)
+    }
+  }, 30) // Check every 30ms for fast response
+
+  return {
+    ctx,
+    source,
+    analyser,
+    gainNode,
+    destination,
+    interval,
+    holdTimer,
+    originalTrack: stream.getAudioTracks()[0],
+  }
+}
+
+function destroyNoiseGate(gate: NoiseGateState | null) {
+  if (!gate) return
+  clearInterval(gate.interval)
+  if (gate.holdTimer) clearTimeout(gate.holdTimer)
+  try { gate.source.disconnect() } catch {}
+  try { gate.analyser.disconnect() } catch {}
+  try { gate.gainNode.disconnect() } catch {}
+  try { gate.ctx.close() } catch {}
+}
+
 export interface UseTelnyxWebRTCReturn {
   callState: CallState
   callDuration: number
@@ -29,6 +120,10 @@ export interface UseTelnyxWebRTCReturn {
   setInputDevice: (deviceId: string) => void
   /** Refresh device list */
   refreshDevices: () => void
+  /** Whether the noise gate is enabled */
+  noiseGateEnabled: boolean
+  /** Toggle noise gate on/off */
+  setNoiseGateEnabled: (enabled: boolean) => void
 }
 
 /**
@@ -145,6 +240,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
   const [isMuted, setIsMuted] = useState(false)
   const [audioInputDevices, setAudioInputDevices] = useState<AudioDevice[]>([])
   const [selectedInputDeviceId, setSelectedInputDeviceId] = useState<string | null>(null)
+  const [noiseGateEnabled, setNoiseGateEnabled] = useState(true) // ON by default
 
   const clientRef = useRef<any>(null)
   const callRef = useRef<any>(null)
@@ -155,6 +251,8 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
   const callerIdRef = useRef<string | null>(null)
   const mountedRef = useRef(true)
   const callStateRef = useRef<CallState>("idle")
+  const noiseGateRef = useRef<NoiseGateState | null>(null)
+  const noiseGateEnabledRef = useRef(true) // sync ref for use in callbacks
 
   // ─── Ringback tone (synthetic North American ringback: 440+480 Hz) ────────
   const ringbackCtxRef = useRef<AudioContext | null>(null)
@@ -306,6 +404,76 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     }
   }, [])
 
+  // ─── Noise Gate: apply / remove on active calls ──────────────────────────
+  const applyNoiseGate = useCallback((call: any) => {
+    // Clean up any existing gate first
+    destroyNoiseGate(noiseGateRef.current)
+    noiseGateRef.current = null
+
+    if (!noiseGateEnabledRef.current) return
+    if (!call) return
+
+    try {
+      const pc: RTCPeerConnection | null = call.peer?.instance ?? call.peerConnection ?? null
+      if (!pc) return
+
+      const sender = pc.getSenders().find((s: RTCRtpSender) => s.track?.kind === "audio")
+      if (!sender?.track) return
+
+      // Create a MediaStream from the sender's current mic track
+      const micStream = new MediaStream([sender.track])
+      const gate = createNoiseGate(micStream, -40, 280)
+      noiseGateRef.current = gate
+
+      // Replace the sender's track with the gated output
+      const gatedTrack = gate.destination.stream.getAudioTracks()[0]
+      if (gatedTrack) {
+        sender.replaceTrack(gatedTrack).catch((e: any) => {
+          console.warn("[Telnyx] Failed to apply noise gate track:", e)
+          destroyNoiseGate(gate)
+          noiseGateRef.current = null
+        })
+        console.log("[Telnyx] 🔇 Noise gate ACTIVE — mic silent when not speaking")
+      }
+    } catch (e) {
+      console.warn("[Telnyx] Noise gate setup failed:", e)
+    }
+  }, [])
+
+  const removeNoiseGate = useCallback((call: any) => {
+    const gate = noiseGateRef.current
+    if (!gate) return
+
+    try {
+      // Restore the original mic track on the sender
+      const pc: RTCPeerConnection | null = call?.peer?.instance ?? call?.peerConnection ?? null
+      if (pc) {
+        const sender = pc.getSenders().find((s: RTCRtpSender) => s.track?.kind === "audio")
+        if (sender && gate.originalTrack) {
+          sender.replaceTrack(gate.originalTrack).catch(() => {})
+        }
+      }
+    } catch {}
+
+    destroyNoiseGate(gate)
+    noiseGateRef.current = null
+    console.log("[Telnyx] 🔊 Noise gate REMOVED — mic always open")
+  }, [])
+
+  // Keep the ref in sync with state so callbacks see the latest value
+  useEffect(() => {
+    noiseGateEnabledRef.current = noiseGateEnabled
+    // If toggled during an active call, apply/remove immediately
+    const call = callRef.current
+    if (callStateRef.current === "connected" && call) {
+      if (noiseGateEnabled) {
+        applyNoiseGate(call)
+      } else {
+        removeNoiseGate(call)
+      }
+    }
+  }, [noiseGateEnabled, applyNoiseGate, removeNoiseGate])
+
   // Initialize Telnyx WebRTC client
   useEffect(() => {
     mountedRef.current = true
@@ -424,6 +592,8 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
             audioRef.current.srcObject = call.remoteStream
             remoteStreamRef.current = call.remoteStream as MediaStream
           }
+          // Apply noise gate to outgoing audio if enabled
+          applyNoiseGate(call)
           updateCallState("connected")
           startTimer()
           break
@@ -431,6 +601,9 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
         case "destroy":
         case "purge":
           console.log(`[Telnyx] ☎️ Call ended — cause=${call.cause}, sip=${call.sipCode}`)
+          // Clean up noise gate before nuking
+          destroyNoiseGate(noiseGateRef.current)
+          noiseGateRef.current = null
           // CRITICAL: nuke ALL audio at every layer
           killAudio()
           stopTimer()
@@ -449,6 +622,8 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
 
     return () => {
       mountedRef.current = false
+      destroyNoiseGate(noiseGateRef.current)
+      noiseGateRef.current = null
       stopTimer()
       killAudio()
       stopRingback()
@@ -467,6 +642,10 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
       setError("WebRTC not ready — try refreshing the page")
       return
     }
+
+    // Clean up noise gate from previous call
+    destroyNoiseGate(noiseGateRef.current)
+    noiseGateRef.current = null
 
     // CRITICAL: Kill ALL audio from any source before doing anything else.
     // This is the single most important line — no sound should survive past here.
@@ -529,6 +708,10 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
   const hangUp = useCallback(() => {
     console.log("[Telnyx] 🔴 Hanging up...")
 
+    // Clean up noise gate first (before nuking peer connection)
+    destroyNoiseGate(noiseGateRef.current)
+    noiseGateRef.current = null
+
     const call = callRef.current
     callRef.current = null
     remoteStreamRef.current = null
@@ -576,5 +759,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     selectedInputDeviceId,
     setInputDevice,
     refreshDevices,
+    noiseGateEnabled,
+    setNoiseGateEnabled,
   }
 }

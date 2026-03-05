@@ -13,6 +13,8 @@ import {
   Play,
   Square,
   Volume2,
+  ShieldCheck,
+  ShieldOff,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -114,6 +116,8 @@ export function PowerDialer({
     selectedInputDeviceId,
     setInputDevice,
     refreshDevices,
+    noiseGateEnabled,
+    setNoiseGateEnabled,
   } = useTelnyxWebRTC()
 
   const [showMicPicker, setShowMicPicker] = useState(false)
@@ -437,15 +441,23 @@ export function PowerDialer({
 
           {/* Mute toggle (only when connected) */}
           {callState === "connected" && (
-            <Button
-              onClick={toggleMute}
-              variant="outline"
-              size="sm"
-              className={cn("gap-1.5", isMuted && "border-red-500/50 text-red-400")}
-            >
-              {isMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-              {isMuted ? "Unmute" : "Mute"}
-            </Button>
+            <>
+              <Button
+                onClick={toggleMute}
+                variant="outline"
+                size="sm"
+                className={cn("gap-1.5", isMuted && "border-red-500/50 text-red-400")}
+              >
+                {isMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                {isMuted ? "Unmute" : "Mute"}
+              </Button>
+              {noiseGateEnabled && (
+                <span className="text-[10px] text-emerald-500/70 flex items-center gap-0.5" title="Noise gate active — mic silent when not speaking">
+                  <ShieldCheck className="h-3 w-3" />
+                  Gate
+                </span>
+              )}
+            </>
           )}
 
           {/* End Call */}
@@ -533,6 +545,25 @@ export function PowerDialer({
               )}
             </button>
           ))}
+          {/* Noise Gate Toggle */}
+          <div className="border-t border-zinc-800 pt-2 mt-2">
+            <button
+              onClick={() => setNoiseGateEnabled(!noiseGateEnabled)}
+              className={cn(
+                "w-full text-left px-2 py-1.5 rounded text-xs flex items-center gap-2 transition-colors",
+                noiseGateEnabled
+                  ? "text-emerald-400 hover:bg-zinc-800"
+                  : "text-muted-foreground hover:bg-zinc-800"
+              )}
+            >
+              {noiseGateEnabled ? <ShieldCheck className="h-3 w-3" /> : <ShieldOff className="h-3 w-3" />}
+              <span>Noise Gate {noiseGateEnabled ? "ON" : "OFF"}</span>
+              <span className="ml-auto text-[10px] text-muted-foreground/50">
+                {noiseGateEnabled ? "Mic silent when not talking" : "Mic always open"}
+              </span>
+            </button>
+          </div>
+
           {/* Test Mic */}
           <div className="border-t border-zinc-800 pt-2 mt-2">
             {micTestState === "idle" && (
