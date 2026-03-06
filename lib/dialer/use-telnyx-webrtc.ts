@@ -377,8 +377,8 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
         client.setAudioSettings({
           micId: deviceId,
           micLabel: device?.label || "",
-          echoCancellation: true,
-          noiseSuppression: true,
+          echoCancellation: false,
+          noiseSuppression: false,
           autoGainControl: false,
         }).catch(() => {})
       } catch {}
@@ -505,19 +505,12 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     console.log("[NoiseGate] 🔊 REMOVED — mic always open")
   }, [])
 
-  // Keep the ref in sync with state so callbacks see the latest value
+  // Keep the ref in sync with state
   useEffect(() => {
     noiseGateEnabledRef.current = noiseGateEnabled
-    // If toggled during an active call, apply/remove immediately
-    const call = callRef.current
-    if (callStateRef.current === "connected" && call) {
-      if (noiseGateEnabled) {
-        applyNoiseGate(call)
-      } else {
-        removeNoiseGate(call)
-      }
-    }
-  }, [noiseGateEnabled, applyNoiseGate, removeNoiseGate])
+    // Noise gate currently disabled — letting mic hardware handle processing.
+    // When re-enabled, this would apply/remove gate mid-call.
+  }, [noiseGateEnabled])
 
   // Initialize Telnyx WebRTC client
   useEffect(() => {
@@ -637,8 +630,8 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
             audioRef.current.srcObject = call.remoteStream
             remoteStreamRef.current = call.remoteStream as MediaStream
           }
-          // Apply noise gate to outgoing audio if enabled
-          applyNoiseGate(call)
+          // Noise gate disabled — let the mic hardware handle audio processing.
+          // applyNoiseGate(call)
           updateCallState("connected")
           startTimer()
           break
@@ -722,11 +715,13 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     console.log("[Telnyx] 📞 Calling:", formatted)
 
     try {
-      // Audio constraints — noiseSuppression ON to kill laptop fan noise.
-      // autoGainControl OFF to avoid volume pumping artifacts.
+      // Audio constraints — MINIMAL. Let the mic hardware handle processing.
+      // Chrome's echoCancellation/noiseSuppression fight with external mics
+      // (like the Hollyland Lark M2) causing distortion + amplified noise.
+      // Google Voice works fine with this mic because it uses raw audio.
       const audioConstraints: MediaTrackConstraints = {
-        echoCancellation: true,
-        noiseSuppression: true,
+        echoCancellation: false,
+        noiseSuppression: false,
         autoGainControl: false,
       }
       if (selectedInputDeviceId && selectedInputDeviceId !== "default") {

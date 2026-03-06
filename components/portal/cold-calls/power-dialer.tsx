@@ -129,8 +129,8 @@ export function PowerDialer({
     try {
       const constraints: MediaStreamConstraints = {
         audio: selectedInputDeviceId && selectedInputDeviceId !== "default"
-          ? { deviceId: { exact: selectedInputDeviceId }, echoCancellation: true, noiseSuppression: true, autoGainControl: false }
-          : { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
+          ? { deviceId: { exact: selectedInputDeviceId }, echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+          : { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
       }
       const stream = await navigator.mediaDevices.getUserMedia(constraints)
       const recorder = new MediaRecorder(stream)
