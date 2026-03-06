@@ -126,6 +126,8 @@ export const STATE_TIMEZONE_MAP: Record<string, DialerTimezone> = {
 // Timezone cascade schedule: ET hour → timezone to call
 // Strategy: hit each timezone at 7:30 AM local time (THE MOVE — early morning blitz)
 // Lunch window at noon, EOD follow-ups at 4 PM ET. Gaps = PW job hours (manual TZ select).
+
+// Mon-Thu: full schedule with 1-hour blocks per timezone
 export const TIMEZONE_SCHEDULE: { etHour: number; timezone: DialerTimezone; label: string }[] = [
   { etHour: 7, timezone: "ET", label: "7-8 AM ET → Eastern leads (7:30 AM their time)" },
   { etHour: 8, timezone: "CT", label: "8-9 AM ET → Central leads (7:30 AM their time)" },
@@ -135,6 +137,18 @@ export const TIMEZONE_SCHEDULE: { etHour: number; timezone: DialerTimezone; labe
   { etHour: 16, timezone: "ET", label: "4-5 PM ET → Eastern EOD (Tue-Fri)" },
 ]
 
+// Friday: compressed 7:30-8:30 AM local windows (30 min each)
+export const FRIDAY_TIMEZONE_SCHEDULE: { etHour: number; timezone: DialerTimezone; label: string }[] = [
+  { etHour: 7, timezone: "ET", label: "7:30-8 AM ET → Eastern (7:30 AM their time)" },
+  { etHour: 8, timezone: "ET", label: "8-8:30 AM ET → Eastern (continued)" },
+  { etHour: 8, timezone: "CT", label: "8:30-9 AM ET → Central (7:30 AM their time)" },
+  { etHour: 9, timezone: "CT", label: "9-9:30 AM ET → Central (continued)" },
+  { etHour: 9, timezone: "MT", label: "9:30-10 AM ET → Mountain (7:30 AM their time)" },
+  { etHour: 10, timezone: "MT", label: "10-10:30 AM ET → Mountain (continued)" },
+  { etHour: 10, timezone: "PT", label: "10:30-11 AM ET → Pacific (7:30 AM their time)" },
+  { etHour: 11, timezone: "PT", label: "11-11:30 AM ET → Pacific (continued)" },
+]
+
 export function getCurrentETHour(): number {
   const now = new Date()
   // Convert to ET (America/New_York)
@@ -142,13 +156,25 @@ export function getCurrentETHour(): number {
   return etTime.getHours()
 }
 
+export function isFriday(): boolean {
+  const now = new Date()
+  const etTime = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }))
+  return etTime.getDay() === 5
+}
+
+export function getActiveSchedule() {
+  return isFriday() ? FRIDAY_TIMEZONE_SCHEDULE : TIMEZONE_SCHEDULE
+}
+
 export function getTimezoneForHour(etHour: number): DialerTimezone | null {
-  const entry = TIMEZONE_SCHEDULE.find((s) => s.etHour === etHour)
+  const schedule = getActiveSchedule()
+  const entry = schedule.find((s) => s.etHour === etHour)
   return entry?.timezone ?? null
 }
 
 export function getScheduleForHour(etHour: number) {
-  return TIMEZONE_SCHEDULE.find((s) => s.etHour === etHour) ?? null
+  const schedule = getActiveSchedule()
+  return schedule.find((s) => s.etHour === etHour) ?? null
 }
 
 // Call transcript types

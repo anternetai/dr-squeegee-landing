@@ -185,8 +185,10 @@ function formatDuration(ms: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`
 }
 
-async function fetchQueue(): Promise<DialerQueueResponse> {
-  const res = await fetch("/api/portal/dialer/queue?limit=500")
+async function fetchQueue(tzOverride?: string): Promise<DialerQueueResponse> {
+  const params = new URLSearchParams({ limit: "500" })
+  if (tzOverride) params.set("timezone", tzOverride)
+  const res = await fetch(`/api/portal/dialer/queue?${params}`)
   if (!res.ok) throw new Error("Failed to fetch queue")
   return res.json()
 }
@@ -576,14 +578,20 @@ function useRecordingPreviewWindow(
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export function CallCockpit() {
+  const [timezoneOverride, setTimezoneOverride] = useState<string | null>(null)
+
   const {
     data: queue,
     isLoading,
     mutate,
-  } = useSWR("cold-call-queue-cockpit", fetchQueue, {
-    revalidateOnFocus: true,
-    refreshInterval: 120000,
-  })
+  } = useSWR(
+    timezoneOverride ? `cold-call-queue-cockpit-${timezoneOverride}` : "cold-call-queue-cockpit",
+    () => fetchQueue(timezoneOverride || undefined),
+    {
+      revalidateOnFocus: true,
+      refreshInterval: 120000,
+    },
+  )
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [positionRestored, setPositionRestored] = useState(false)
@@ -1097,6 +1105,38 @@ export function CallCockpit() {
 
       {/* Stats */}
       <StatsBar sessionDials={sessionDials} sessionDemos={sessionDemos} timeToday={sessionTime} />
+
+      {/* Timezone picker — switch queue to any timezone */}
+      <div className="flex items-center gap-1 shrink-0">
+        {(["ET", "CT", "MT", "PT"] as const).map((tz) => (
+          <button
+            key={tz}
+            onClick={() => {
+              const next = timezoneOverride === tz ? null : tz
+              setTimezoneOverride(next)
+              setCurrentIndex(0)
+            }}
+            className={cn(
+              "px-2 py-1 rounded text-[11px] font-mono font-bold transition-colors",
+              (timezoneOverride === tz || (!timezoneOverride && queue?.currentTimezone === tz))
+                ? "bg-orange-500 text-white"
+                : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+            )}
+            title={timezoneOverride === tz ? `Click to return to auto schedule` : `Switch queue to ${tz} leads`}
+          >
+            {tz}
+          </button>
+        ))}
+        {timezoneOverride && (
+          <button
+            onClick={() => { setTimezoneOverride(null); setCurrentIndex(0) }}
+            className="px-1.5 py-1 rounded text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
+            title="Return to auto schedule"
+          >
+            Auto
+          </button>
+        )}
+      </div>
 
       {/* Controls */}
       <div className="flex items-center gap-2 shrink-0">
