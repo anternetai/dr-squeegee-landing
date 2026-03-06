@@ -137,16 +137,13 @@ export const TIMEZONE_SCHEDULE: { etHour: number; timezone: DialerTimezone; labe
   { etHour: 16, timezone: "ET", label: "4-5 PM ET → Eastern EOD (Tue-Fri)" },
 ]
 
-// Friday: compressed 7:30-8:30 AM local windows (30 min each)
+// Friday: same 1-hour blocks but shifted to start at 7:30 AM local time
+// (30 min later than Mon-Thu which targets 7:00 AM local)
 export const FRIDAY_TIMEZONE_SCHEDULE: { etHour: number; timezone: DialerTimezone; label: string }[] = [
-  { etHour: 7, timezone: "ET", label: "7:30-8 AM ET → Eastern (7:30 AM their time)" },
-  { etHour: 8, timezone: "ET", label: "8-8:30 AM ET → Eastern (continued)" },
-  { etHour: 8, timezone: "CT", label: "8:30-9 AM ET → Central (7:30 AM their time)" },
-  { etHour: 9, timezone: "CT", label: "9-9:30 AM ET → Central (continued)" },
-  { etHour: 9, timezone: "MT", label: "9:30-10 AM ET → Mountain (7:30 AM their time)" },
-  { etHour: 10, timezone: "MT", label: "10-10:30 AM ET → Mountain (continued)" },
-  { etHour: 10, timezone: "PT", label: "10:30-11 AM ET → Pacific (7:30 AM their time)" },
-  { etHour: 11, timezone: "PT", label: "11-11:30 AM ET → Pacific (continued)" },
+  { etHour: 7, timezone: "ET", label: "7:30-8:30 AM ET → Eastern (7:30 AM their time)" },
+  { etHour: 8, timezone: "CT", label: "8:30-9:30 AM ET → Central (7:30 AM their time)" },
+  { etHour: 9, timezone: "MT", label: "9:30-10:30 AM ET → Mountain (7:30 AM their time)" },
+  { etHour: 10, timezone: "PT", label: "10:30-11:30 AM ET → Pacific (7:30 AM their time)" },
 ]
 
 export function getCurrentETHour(): number {
