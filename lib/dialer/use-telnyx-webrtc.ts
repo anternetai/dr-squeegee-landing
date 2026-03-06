@@ -715,23 +715,18 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     console.log("[Telnyx] 📞 Calling:", formatted)
 
     try {
-      // Audio constraints — MINIMAL. Let the mic hardware handle processing.
-      // Chrome's echoCancellation/noiseSuppression fight with external mics
-      // (like the Hollyland Lark M2) causing distortion + amplified noise.
-      // Google Voice works fine with this mic because it uses raw audio.
-      const audioConstraints: MediaTrackConstraints = {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-      }
-      if (selectedInputDeviceId && selectedInputDeviceId !== "default") {
-        audioConstraints.deviceId = { exact: selectedInputDeviceId }
-      }
+      // Audio: just pass true (or device ID). No Chrome processing constraints.
+      // The original `audio: true` worked fine — echo/noise issues were introduced
+      // by adding constraints that fought with the Hollyland mic's built-in DSP.
+      const audio: boolean | MediaTrackConstraints =
+        selectedInputDeviceId && selectedInputDeviceId !== "default"
+          ? { deviceId: { exact: selectedInputDeviceId } }
+          : true
 
       const call = clientRef.current.newCall({
         destinationNumber: formatted,
         callerIdNumber: callerIdRef.current || undefined,
-        audio: audioConstraints,
+        audio,
         video: false,
       })
       callRef.current = call
