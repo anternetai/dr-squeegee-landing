@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { DoorOpen } from "lucide-react"
+import { DoorOpen, MapPin } from "lucide-react"
 
 import { MoveHero } from "@/components/portal/the-move/move-hero"
 import { SessionTracker } from "@/components/portal/the-move/session-tracker"
@@ -87,12 +87,18 @@ export default function TheMovePage() {
         <RevenueBridge stats={stats} />
         <KnockHistory sessions={sessions} onEdit={() => router.push("/portal/the-move/knocks")} />
 
-        {/* Log Session Link */}
-        <div className="flex justify-center">
-          <Button asChild className="h-14 px-8 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-black text-base tracking-wide uppercase shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+        {/* Action Buttons */}
+        <div className="flex justify-center gap-3">
+          <Button asChild className="h-14 px-6 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-black text-base tracking-wide uppercase shadow-[0_0_20px_rgba(245,158,11,0.3)]">
             <Link href="/portal/the-move/knocks">
               <DoorOpen className="mr-2 size-5" />
               Log Session
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="h-14 px-6 border-stone-700 text-stone-200 hover:bg-stone-800 font-bold text-base tracking-wide uppercase">
+            <Link href="/portal/the-move/territories">
+              <MapPin className="mr-2 size-5" />
+              Territories
             </Link>
           </Button>
         </div>

@@ -57,6 +57,29 @@ export interface KnockStats {
   avgDoorsPerHour: number | null
 }
 
+export interface DoorVisit {
+  date: string
+  answered: boolean
+  pitched?: boolean
+  closed?: boolean
+  not_interested?: boolean
+  notes?: string
+  revenue?: number
+}
+
+export interface TerritoryDoor {
+  id: string
+  neighborhood: string
+  lat: number
+  lng: number
+  visits: DoorVisit[]
+  status: string
+  total_visits: number
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface MoveStats {
   // Client progress
   activeClients: number
