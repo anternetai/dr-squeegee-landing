@@ -15,6 +15,7 @@ import { ClientProgress } from "@/components/portal/the-move/client-progress"
 import { RevenueBridge } from "@/components/portal/the-move/revenue-bridge"
 import { KnockHistory } from "@/components/portal/the-move/knock-history"
 import { ConversionFunnel } from "@/components/portal/the-move/conversion-funnel"
+import { InsightsCard } from "@/components/portal/the-move/insights-card"
 import type { MoveStats, DoorKnockSession } from "@/lib/the-move/types"
 
 const ADMIN_ID = "bba79829-7852-4f81-aa2e-393650138e7c"
@@ -88,6 +89,7 @@ export default function TheMovePage() {
         </div>
 
         <RevenueBridge stats={stats} />
+        <InsightsCard />
         <KnockHistory sessions={sessions} onEdit={() => router.push("/portal/the-move/knocks")} />
 
         {/* Territories Section */}

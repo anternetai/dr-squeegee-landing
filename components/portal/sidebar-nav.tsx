@@ -17,6 +17,7 @@ import {
   Cpu,
   MapPin,
   DoorOpen,
+  Brain,
 } from "lucide-react"
 import {
   Sidebar,
@@ -53,6 +54,7 @@ const adminItems = [
   { label: "Control Panel", href: "/portal/admin/control", icon: Cpu },
   { label: "The Move", href: "/portal/the-move", icon: MapPin },
   { label: "Door Knocks", href: "/portal/the-move/knocks", icon: DoorOpen },
+  { label: "AI Insights", href: "/portal/the-move/insights", icon: Brain },
 ]
 
 interface SidebarNavProps {
