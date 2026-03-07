@@ -24,6 +24,39 @@ export interface DoorKnockSession {
   gps_pins: GpsPin[] | null
 }
 
+export interface DoorKnockNeighborhood {
+  id: string
+  name: string
+  notes: string | null
+  center_lat: number | null
+  center_lng: number | null
+  created_at: string
+}
+
+export interface KnockStats {
+  allTimeKnocked: number
+  allTimeOpened: number
+  allTimePitched: number
+  allTimeClosed: number
+  allTimeRevenue: number
+  allTimeSessions: number
+  todayKnocked: number
+  todayOpened: number
+  todayPitched: number
+  todayClosed: number
+  todayRevenue: number
+  todaySessions: number
+  weekKnocked: number
+  weekOpened: number
+  weekPitched: number
+  weekClosed: number
+  currentStreak: number
+  bestStreak: number
+  bestNeighborhood: string | null
+  bestNeighborhoodCloseRate: number | null
+  avgDoorsPerHour: number | null
+}
+
 export interface MoveStats {
   // Client progress
   activeClients: number

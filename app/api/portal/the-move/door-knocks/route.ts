@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
   const limit = Number(searchParams.get("limit")) || 20
   const dateFrom = searchParams.get("date_from")
   const dateTo = searchParams.get("date_to")
+  const neighborhood = searchParams.get("neighborhood")
 
   const admin = getAdmin()
   let query = admin
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
 
   if (dateFrom) query = query.gte("session_date", dateFrom)
   if (dateTo) query = query.lte("session_date", dateTo)
+  if (neighborhood) query = query.eq("neighborhood", neighborhood)
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

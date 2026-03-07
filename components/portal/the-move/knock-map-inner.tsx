@@ -16,10 +16,10 @@ const PIN_COLORS: Record<string, string> = {
   skip: "#ef4444",
 }
 
-function createIcon(color: string) {
+function createIcon(color: string, opacity = 1) {
   return L.divIcon({
     className: "",
-    html: `<div style="width:24px;height:24px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>`,
+    html: `<div style="width:24px;height:24px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);opacity:${opacity};"></div>`,
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   })
@@ -42,15 +42,35 @@ function MapReady({ onReady }: { onReady: (map: L.Map) => void }) {
   return null
 }
 
+function MapCenterUpdater({ center }: { center: { lat: number; lng: number } | null }) {
+  const map = useMap()
+  useEffect(() => {
+    if (center) {
+      map.setView([center.lat, center.lng], 15)
+    }
+  }, [center, map])
+  return null
+}
+
 interface Props {
   pins: GpsPin[]
+  historicalPins?: GpsPin[]
   pendingPin: { lat: number; lng: number } | null
   onMapClick: (lat: number, lng: number) => void
   onRemovePin: (index: number) => void
   onMapReady: (map: L.Map) => void
+  neighborhoodCenter?: { lat: number; lng: number } | null
 }
 
-export default function KnockMapInner({ pins, pendingPin, onMapClick, onRemovePin, onMapReady }: Props) {
+export default function KnockMapInner({
+  pins,
+  historicalPins = [],
+  pendingPin,
+  onMapClick,
+  onRemovePin,
+  onMapReady,
+  neighborhoodCenter,
+}: Props) {
   return (
     <div className="overflow-hidden rounded-xl border border-stone-800" style={{ height: "60vh" }}>
       <MapContainer
@@ -64,7 +84,27 @@ export default function KnockMapInner({ pins, pendingPin, onMapClick, onRemovePi
         />
         <ClickHandler onClick={onMapClick} />
         <MapReady onReady={onMapReady} />
+        {neighborhoodCenter && <MapCenterUpdater center={neighborhoodCenter} />}
 
+        {/* Historical pins — faded, not removable */}
+        {historicalPins.map((pin, i) => (
+          <Marker
+            key={`hist-${pin.lat}-${pin.lng}-${i}`}
+            position={[pin.lat, pin.lng]}
+            icon={createIcon(PIN_COLORS[pin.result || "knocked"], 0.4)}
+          >
+            <Popup>
+              <div className="text-sm">
+                <p className="font-semibold capitalize">{pin.result || "knocked"}</p>
+                <p className="text-stone-500 text-xs">
+                  {new Date(pin.ts).toLocaleDateString()}
+                </p>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+
+        {/* Current session pins — full opacity, removable */}
         {pins.map((pin, i) => (
           <Marker
             key={`${pin.lat}-${pin.lng}-${i}`}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback } from "react"
 import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { Locate } from "lucide-react"
@@ -15,7 +15,6 @@ const PIN_COLORS: Record<string, string> = {
   skip: "#ef4444",
 }
 
-// Dynamically import the inner map to avoid SSR issues with Leaflet
 const LeafletMap = dynamic(() => import("./knock-map-inner"), {
   ssr: false,
   loading: () => (
@@ -29,9 +28,11 @@ interface KnockMapTabProps {
   pins: GpsPin[]
   onAddPin: (pin: GpsPin) => void
   onRemovePin: (index: number) => void
+  historicalPins: GpsPin[]
+  neighborhoodCenter: { lat: number; lng: number } | null
 }
 
-export function KnockMapTab({ pins, onAddPin, onRemovePin }: KnockMapTabProps) {
+export function KnockMapTab({ pins, onAddPin, onRemovePin, historicalPins, neighborhoodCenter }: KnockMapTabProps) {
   const [pendingPin, setPendingPin] = useState<{ lat: number; lng: number } | null>(null)
   const [mapInstance, setMapInstance] = useState<any>(null)
 
@@ -67,13 +68,14 @@ export function KnockMapTab({ pins, onAddPin, onRemovePin }: KnockMapTabProps) {
     <div className="relative">
       <LeafletMap
         pins={pins}
+        historicalPins={historicalPins}
         pendingPin={pendingPin}
         onMapClick={handleMapClick}
         onRemovePin={onRemovePin}
         onMapReady={setMapInstance}
+        neighborhoodCenter={neighborhoodCenter}
       />
 
-      {/* Locate me button */}
       <Button
         variant="outline"
         size="icon"
@@ -83,7 +85,6 @@ export function KnockMapTab({ pins, onAddPin, onRemovePin }: KnockMapTabProps) {
         <Locate className="size-4 text-amber-400" />
       </Button>
 
-      {/* Result picker */}
       {pendingPin && (
         <div className="absolute bottom-3 left-3 right-3 z-[1000] rounded-xl border border-stone-700 bg-stone-900/95 p-3 backdrop-blur">
           <p className="mb-2 text-center text-xs font-medium text-stone-400">What happened here?</p>
@@ -113,7 +114,6 @@ export function KnockMapTab({ pins, onAddPin, onRemovePin }: KnockMapTabProps) {
         </div>
       )}
 
-      {/* Pin legend */}
       <div className="mt-3 flex flex-wrap justify-center gap-3">
         {PIN_RESULTS.map((r) => (
           <div key={r} className="flex items-center gap-1.5">
@@ -124,6 +124,12 @@ export function KnockMapTab({ pins, onAddPin, onRemovePin }: KnockMapTabProps) {
             <span className="text-[10px] capitalize text-stone-500">{r}</span>
           </div>
         ))}
+        {historicalPins.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <div className="h-3 w-3 rounded-full border border-stone-600 bg-stone-700 opacity-60" />
+            <span className="text-[10px] text-stone-500">past</span>
+          </div>
+        )}
       </div>
     </div>
   )
