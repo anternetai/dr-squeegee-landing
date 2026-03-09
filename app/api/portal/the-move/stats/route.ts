@@ -47,9 +47,9 @@ export async function GET() {
     // 1. Active clients
     admin
       .from("agency_clients")
-      .select("company_name")
+      .select("legal_business_name")
       .eq("role", "client")
-      .eq("status", "active"),
+      .eq("onboarding_status", "active"),
 
     // 2. This week's dials + outcomes
     admin
@@ -91,7 +91,7 @@ export async function GET() {
 
   const stats: MoveStats = {
     activeClients: clients.length,
-    clientNames: clients.map((c) => c.company_name).filter(Boolean),
+    clientNames: clients.map((c) => c.legal_business_name).filter(Boolean),
     weekDials: weekCalls.length,
     weekConversations: weekCalls.filter((c) => c.outcome === "conversation" || c.outcome === "demo_booked").length,
     weekDemos: weekCalls.filter((c) => c.outcome === "demo_booked").length,
