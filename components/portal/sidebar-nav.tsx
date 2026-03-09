@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -19,6 +20,10 @@ import {
   Brain,
   Settings,
   ClipboardList,
+  ChevronRight,
+  Compass,
+  Crosshair,
+  Rocket,
 } from "lucide-react"
 import {
   Sidebar,
@@ -26,20 +31,39 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { UserMenu } from "./user-menu"
 import { TEAM_ROLE_CONFIG } from "@/lib/portal/constants"
 import type { TeamMemberRole } from "@/lib/portal/types"
 
+type NavItem = {
+  label: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+}
+
+type NavGroup = {
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  items: NavItem[]
+}
+
 // Client/team member nav — always visible
-const navItems = [
+const navItems: NavItem[] = [
   { label: "Dashboard", href: "/portal/dashboard", icon: LayoutDashboard },
   { label: "Leads", href: "/portal/leads", icon: Users },
   { label: "Conversations", href: "/portal/conversations", icon: MessageSquare },
@@ -47,28 +71,51 @@ const navItems = [
   { label: "Billing", href: "/portal/billing", icon: CreditCard },
 ]
 
-// Admin: Operations group
-const adminOpsItems = [
-  { label: "Clients", href: "/portal/admin", icon: Shield },
-  { label: "Manage", href: "/portal/admin/manage", icon: ClipboardList },
-  { label: "Prospects", href: "/portal/admin/prospects", icon: UserPlus },
-  { label: "Control Panel", href: "/portal/admin/control", icon: Cpu },
+// Admin collapsible groups
+const adminGroups: NavGroup[] = [
+  {
+    label: "Operations",
+    icon: Compass,
+    items: [
+      { label: "Clients", href: "/portal/admin", icon: Shield },
+      { label: "Manage", href: "/portal/admin/manage", icon: ClipboardList },
+      { label: "Prospects", href: "/portal/admin/prospects", icon: UserPlus },
+      { label: "Control Panel", href: "/portal/admin/control", icon: Cpu },
+    ],
+  },
+  {
+    label: "Sales",
+    icon: Crosshair,
+    items: [
+      { label: "Cold Calls", href: "/portal/cold-calls", icon: PhoneCall },
+      { label: "Call Logs", href: "/portal/calls", icon: Headphones },
+    ],
+  },
+  {
+    label: "The Move",
+    icon: Rocket,
+    items: [
+      { label: "Overview", href: "/portal/the-move", icon: MapPin },
+      { label: "Door Knocks", href: "/portal/the-move/knocks", icon: DoorOpen },
+      { label: "AI Insights", href: "/portal/the-move/insights", icon: Brain },
+    ],
+  },
 ]
 
-// Admin: Sales group
-const adminSalesItems = [
-  { label: "Cold Calls", href: "/portal/cold-calls", icon: PhoneCall },
-  { label: "Call Logs", href: "/portal/calls", icon: Headphones },
-]
+function isGroupActive(items: NavItem[], pathname: string) {
+  return items.some((item) =>
+    item.href === "/portal/admin"
+      ? pathname === item.href
+      : pathname.startsWith(item.href)
+  )
+}
 
-// Admin: The Move group
-const adminMoveItems = [
-  { label: "The Move", href: "/portal/the-move", icon: MapPin },
-  { label: "Door Knocks", href: "/portal/the-move/knocks", icon: DoorOpen },
-  { label: "AI Insights", href: "/portal/the-move/insights", icon: Brain },
-]
-
-type NavItem = { label: string; href: string; icon: React.ComponentType<{ className?: string }> }
+function isItemActive(href: string, pathname: string) {
+  if (href === "/portal/dashboard" || href === "/portal/admin") {
+    return pathname === href
+  }
+  return pathname.startsWith(href)
+}
 
 interface SidebarNavProps {
   user: {
@@ -78,36 +125,74 @@ interface SidebarNavProps {
   }
 }
 
-function NavGroup({ label, items, pathname, onNavClick }: {
-  label: string
-  items: NavItem[]
+function CollapsibleNavGroup({
+  group,
+  pathname,
+  onNavClick,
+  defaultOpen,
+}: {
+  group: NavGroup
   pathname: string
   onNavClick: () => void
+  defaultOpen: boolean
 }) {
+  const [open, setOpen] = useState(defaultOpen)
+  const groupActive = isGroupActive(group.items, pathname)
+  const GroupIcon = group.icon
+
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => {
-            const isActive =
-              item.href === "/portal/dashboard" || item.href === "/portal/admin"
-                ? pathname === item.href
-                : pathname.startsWith(item.href)
-            return (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                  <Link href={item.href} onClick={onNavClick}>
-                    <item.icon className={isActive ? "size-4 text-orange-500" : "size-4"} />
-                    <span>{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )
-          })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+    <Collapsible open={open} onOpenChange={setOpen} className="group/collapsible">
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton
+            tooltip={group.label}
+            className="group/trigger"
+            data-active={groupActive || undefined}
+          >
+            <GroupIcon
+              className={`size-4 transition-colors ${
+                groupActive
+                  ? "text-orange-500"
+                  : "text-muted-foreground group-hover/trigger:text-foreground"
+              }`}
+            />
+            <span
+              className={`flex-1 font-medium transition-colors ${
+                groupActive ? "text-foreground" : ""
+              }`}
+            >
+              {group.label}
+            </span>
+            <ChevronRight
+              className={`size-3.5 text-muted-foreground/60 transition-transform duration-200 ${
+                open ? "rotate-90" : ""
+              }`}
+            />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+          <SidebarMenuSub>
+            {group.items.map((item) => {
+              const active = isItemActive(item.href, pathname)
+              return (
+                <SidebarMenuSubItem key={item.href}>
+                  <SidebarMenuSubButton asChild isActive={active}>
+                    <Link href={item.href} onClick={onNavClick}>
+                      <item.icon
+                        className={`size-3.5 ${
+                          active ? "text-orange-500" : ""
+                        }`}
+                      />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              )
+            })}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
   )
 }
 
@@ -131,22 +216,67 @@ export function SidebarNav({ user }: SidebarNavProps) {
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-4 py-3">
-        <Link href="/portal/dashboard" onClick={handleNavClick} className="flex items-center gap-2">
+        <Link
+          href="/portal/dashboard"
+          onClick={handleNavClick}
+          className="flex items-center gap-2.5"
+        >
           <Image src="/favicon.svg" alt="HomeField Hub" width={28} height={28} />
-          <span className="text-base font-semibold">HomeField Hub</span>
+          <span className="text-base font-semibold tracking-tight">
+            HomeField Hub
+          </span>
         </Link>
       </SidebarHeader>
+
       <SidebarContent>
-        <NavGroup label="Navigation" items={filteredNavItems} pathname={pathname} onNavClick={handleNavClick} />
-        {isAdmin && (
-          <>
-            <NavGroup label="Operations" items={adminOpsItems} pathname={pathname} onNavClick={handleNavClick} />
-            <NavGroup label="Sales" items={adminSalesItems} pathname={pathname} onNavClick={handleNavClick} />
-            <NavGroup label="The Move" items={adminMoveItems} pathname={pathname} onNavClick={handleNavClick} />
-          </>
-        )}
-        {/* Settings — always visible */}
+        {/* Navigation — flat list, always visible */}
         <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {filteredNavItems.map((item) => {
+                const active = isItemActive(item.href, pathname)
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.label}
+                    >
+                      <Link href={item.href} onClick={handleNavClick}>
+                        <item.icon
+                          className={`size-4 ${active ? "text-orange-500" : ""}`}
+                        />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Admin collapsible groups */}
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminGroups.map((group) => (
+                  <CollapsibleNavGroup
+                    key={group.label}
+                    group={group}
+                    pathname={pathname}
+                    onNavClick={handleNavClick}
+                    defaultOpen={isGroupActive(group.items, pathname)}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Settings */}
+        <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -156,7 +286,13 @@ export function SidebarNav({ user }: SidebarNavProps) {
                   tooltip="Settings"
                 >
                   <Link href="/portal/settings" onClick={handleNavClick}>
-                    <Settings className={pathname.startsWith("/portal/settings") ? "size-4 text-orange-500" : "size-4"} />
+                    <Settings
+                      className={`size-4 ${
+                        pathname.startsWith("/portal/settings")
+                          ? "text-orange-500"
+                          : ""
+                      }`}
+                    />
                     <span>Settings</span>
                   </Link>
                 </SidebarMenuButton>
@@ -165,6 +301,7 @@ export function SidebarNav({ user }: SidebarNavProps) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
