@@ -36,6 +36,8 @@ interface PowerDialerProps {
   onRemoteStream?: (stream: MediaStream | null) => void
   /** Called when local audio stream (agent's mic) becomes available or is cleared */
   onLocalStream?: (stream: MediaStream | null) => void
+  /** Caller ID number from phone pool rotation — changes per call */
+  callerIdNumber?: string | null
   /** Ref that exposes hangUp to parent — so cockpit can end call on disposition */
   hangUpRef?: React.MutableRefObject<(() => void) | null>
   className?: string
@@ -90,6 +92,7 @@ export function PowerDialer({
   onCallStateChange,
   onRemoteStream,
   onLocalStream,
+  callerIdNumber,
   hangUpRef,
   className,
 }: PowerDialerProps) {
@@ -191,8 +194,8 @@ export function PowerDialer({
   }, [hangUp, hangUpRef])
 
   const makeCall = useCallback(
-    (phoneNumber: string) => webrtcMakeCall(phoneNumber),
-    [webrtcMakeCall]
+    (phoneNumber: string) => webrtcMakeCall(phoneNumber, callerIdNumber || undefined),
+    [webrtcMakeCall, callerIdNumber]
   )
 
   // ─── clearResetAndDial ────────────────────────────────────────────────────

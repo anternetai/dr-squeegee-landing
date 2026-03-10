@@ -695,10 +695,11 @@ export function CallCockpit() {
           outcome: outcome as DialerOutcome,
           notes: notesText || undefined,
           demoDate: demoDateStr || undefined,
+          callerNumberId: queue?.selectedNumber?.id || undefined,
         }),
       })
     },
-    []
+    [queue?.selectedNumber?.id]
   )
 
   // Sync recording with call lifecycle
@@ -941,8 +942,11 @@ export function CallCockpit() {
           setCurrentIndex(0)
         }
 
-        // Always submit the disposition
+        // Always submit the disposition (updates phone number counters)
         await submitDisposition(leadSnap, outcome, notesSnap, demoDateSnap)
+
+        // Re-fetch queue in background so phone number rotation picks next number
+        mutate()
 
         // Auto-dial disabled — user clicks Dial manually
 
@@ -1311,6 +1315,7 @@ export function CallCockpit() {
         onCallStateChange={handleCallStateChange}
         onRemoteStream={handleRemoteStream}
         onLocalStream={handleLocalStream}
+        callerIdNumber={queue?.selectedNumber?.phone_number}
         hangUpRef={hangUpRef}
         countdownSeconds={15}
       />

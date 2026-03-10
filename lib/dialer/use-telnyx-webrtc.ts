@@ -127,7 +127,7 @@ export interface UseTelnyxWebRTCReturn {
   isReady: boolean
   error: string | null
   isMuted: boolean
-  makeCall: (phoneNumber: string) => void
+  makeCall: (phoneNumber: string, callerIdOverride?: string) => void
   hangUp: () => void
   toggleMute: () => void
   /** Reset callState back to "idle" — call after showing "Call Ended" briefly */
@@ -681,7 +681,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     }
   }, [startTimer, stopTimer, killAudio, stopRingback, startRingback, updateCallState])
 
-  const makeCall = useCallback((phoneNumber: string) => {
+  const makeCall = useCallback((phoneNumber: string, callerIdOverride?: string) => {
     if (!clientRef.current || !isReady) {
       setError("WebRTC not ready — try refreshing the page")
       return
@@ -731,9 +731,11 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
         autoGainControl: false,
       }
 
+      const callerId = callerIdOverride || callerIdRef.current || undefined
+      console.log("[Telnyx] Using caller ID:", callerId)
       const call = clientRef.current.newCall({
         destinationNumber: formatted,
-        callerIdNumber: callerIdRef.current || undefined,
+        callerIdNumber: callerId,
         audio,
         video: false,
       })
