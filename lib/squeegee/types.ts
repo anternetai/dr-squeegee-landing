@@ -59,6 +59,7 @@ export interface SqueegeeInvoice {
   paid_at: string | null
   stripe_payment_link: string | null
   stripe_payment_intent_id: string | null
+  payment_method: "stripe" | "cash" | "zelle" | "check" | null
   notes: string | null
 }
 

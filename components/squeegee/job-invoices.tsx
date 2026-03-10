@@ -159,6 +159,22 @@ export function JobInvoices({ job }: Props) {
     }
   }
 
+  async function markPaid(invoiceId: string, paymentMethod: string) {
+    setUpdatingId(invoiceId)
+    try {
+      await fetch(`/api/squeegee/invoices/${invoiceId}/mark-paid`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payment_method: paymentMethod }),
+      })
+      await fetchInvoices()
+    } catch {
+      // silent
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -294,7 +310,7 @@ export function JobInvoices({ job }: Props) {
                 invoice={inv}
                 isUpdating={updatingId === inv.id}
                 onMarkSent={() => updateStatus(inv.id, "sent")}
-                onMarkPaid={() => updateStatus(inv.id, "paid")}
+                onMarkPaid={(method) => markPaid(inv.id, method)}
               />
             ))}
           </div>
@@ -302,6 +318,20 @@ export function JobInvoices({ job }: Props) {
       </CardContent>
     </Card>
   )
+}
+
+const PAYMENT_METHODS = [
+  { value: "cash", label: "Cash" },
+  { value: "zelle", label: "Zelle" },
+  { value: "stripe", label: "Stripe" },
+  { value: "check", label: "Check" },
+] as const
+
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  cash: "Cash",
+  zelle: "Zelle",
+  stripe: "Stripe",
+  check: "Check",
 }
 
 function InvoiceRow({
@@ -313,9 +343,10 @@ function InvoiceRow({
   invoice: SqueegeeInvoice
   isUpdating: boolean
   onMarkSent: () => void
-  onMarkPaid: () => void
+  onMarkPaid: (method: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [showPaymentMethods, setShowPaymentMethods] = useState(false)
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
@@ -385,31 +416,57 @@ function InvoiceRow({
               </Button>
             )}
 
-            {/* Mark Paid */}
-            {(invoice.status === "sent" || invoice.status === "overdue") && (
+            {/* Mark Paid — shows payment method picker */}
+            {(invoice.status === "sent" || invoice.status === "overdue") && !showPaymentMethods && (
               <Button
                 variant="outline"
                 size="sm"
                 className="h-7 px-3 gap-1.5 text-xs text-green-700 border-green-300 hover:bg-green-50 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-900/20"
                 onClick={(e) => {
                   e.stopPropagation()
-                  onMarkPaid()
+                  setShowPaymentMethods(true)
                 }}
                 disabled={isUpdating}
               >
-                {isUpdating ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <CreditCard className="h-3 w-3" />
-                )}
+                <CreditCard className="h-3 w-3" />
                 Mark Paid
               </Button>
+            )}
+
+            {/* Payment method buttons */}
+            {showPaymentMethods && (
+              <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                <span className="text-xs text-muted-foreground mr-1">Paid via:</span>
+                {PAYMENT_METHODS.map((m) => (
+                  <Button
+                    key={m.value}
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2.5 text-xs text-green-700 border-green-300 hover:bg-green-50 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-900/20"
+                    onClick={() => {
+                      onMarkPaid(m.value)
+                      setShowPaymentMethods(false)
+                    }}
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : m.label}
+                  </Button>
+                ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-muted-foreground"
+                  onClick={() => setShowPaymentMethods(false)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
             )}
 
             {invoice.status === "paid" && invoice.paid_at && (
               <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
                 <Check className="h-3 w-3" />
-                Paid{" "}
+                Paid{invoice.payment_method ? ` (${PAYMENT_METHOD_LABEL[invoice.payment_method] || invoice.payment_method})` : ""}{" "}
                 {new Date(invoice.paid_at).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",

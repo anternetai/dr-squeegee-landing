@@ -13,7 +13,7 @@ export async function middleware(request: NextRequest) {
   // CRM auth gate — protect all /crm routes except /crm/login
   if (pathname.startsWith("/crm") && !pathname.startsWith("/crm/login")) {
     const crmAuth = request.cookies.get("crm_auth")
-    if (!crmAuth || !verifyCrmCookieSignature(crmAuth.value)) {
+    if (!crmAuth || !(await verifyCrmCookieSignature(crmAuth.value))) {
       const loginUrl = new URL("/crm/login", request.url)
       return NextResponse.redirect(loginUrl)
     }

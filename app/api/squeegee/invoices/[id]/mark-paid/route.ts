@@ -9,17 +9,30 @@ function getAdmin() {
 }
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
     const supabase = getAdmin()
 
+    // Parse optional payment_method from body
+    let paymentMethod: string | null = null
+    try {
+      const body = await request.json()
+      if (body.payment_method) paymentMethod = body.payment_method
+    } catch {
+      // No body is fine — defaults to null (Stripe webhook / legacy)
+    }
+
     // Update invoice status to 'paid'
     const { data: invoice, error: updateError } = await supabase
       .from('squeegee_invoices')
-      .update({ status: 'paid', paid_at: new Date().toISOString() })
+      .update({
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+        ...(paymentMethod ? { payment_method: paymentMethod } : {}),
+      })
       .eq('id', id)
       .select()
       .single()
@@ -50,7 +63,7 @@ export async function POST(
     await supabase.from('squeegee_activity').insert({
       job_id: invoice.job_id,
       type: 'payment_received',
-      note: `Invoice marked as paid - $${Number(invoice.amount).toFixed(2)}`,
+      note: `Invoice marked as paid - $${Number(invoice.amount).toFixed(2)}${paymentMethod ? ` (${paymentMethod})` : ''}`,
     })
 
     return NextResponse.json(invoice)

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const signedValue = signCrmCookie("authenticated")
+  const signedValue = await signCrmCookie("authenticated")
   const res = NextResponse.json({ success: true })
   res.cookies.set("crm_auth", signedValue, {
     httpOnly: true,
