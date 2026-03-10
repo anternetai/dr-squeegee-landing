@@ -745,9 +745,15 @@ export function CallCockpit() {
     [startRecording, stopRecording, durationMs, currentLead, resetRecording]
   )
 
-  // Re-anchor index when leads array changes (e.g. after SWR re-fetch removes
-  // a dispositioned lead, or reorders leads). Without this, the index drifts
-  // and the displayed lead jumps — even mid-call.
+  // Track the current lead ID in a ref so the re-anchor effect can read it
+  // without adding currentIndex to its dependency array.
+  const currentLeadIdRef = useRef<string | null>(null)
+  currentLeadIdRef.current = currentLead?.id || null
+
+  // Re-anchor index ONLY when the leads array changes (e.g. after SWR re-fetch
+  // removes a dispositioned lead or reorders). We intentionally exclude
+  // currentIndex from deps — otherwise the effect fires immediately on
+  // setCurrentIndex and clears targetLeadIdRef before mutate() resolves.
   useEffect(() => {
     if (leads.length === 0) return
 
@@ -755,35 +761,32 @@ export function CallCockpit() {
     const activeLeadId = callLeadRef.current?.id
     if (activeLeadId) {
       const idx = leads.findIndex((l) => l.id === activeLeadId)
-      if (idx >= 0 && idx !== currentIndex) {
-        setCurrentIndex(idx)
-      }
-      return // Don't process other anchoring during a call
+      if (idx >= 0) setCurrentIndex(idx)
+      return
     }
 
     // Priority 2: After disposition, anchor to the intended next lead
     if (targetLeadIdRef.current) {
       const targetIdx = leads.findIndex((l) => l.id === targetLeadIdRef.current)
-      if (targetIdx >= 0 && targetIdx !== currentIndex) {
-        setCurrentIndex(targetIdx)
-      }
+      if (targetIdx >= 0) setCurrentIndex(targetIdx)
       targetLeadIdRef.current = null
       return
     }
 
-    // Priority 3: Keep showing the same lead if possible (array shifted under us)
-    const currentLeadId = currentLead?.id
-    if (currentLeadId) {
-      const idx = leads.findIndex((l) => l.id === currentLeadId)
-      if (idx >= 0 && idx !== currentIndex) {
+    // Priority 3: Keep showing the same lead if array shifted under us
+    const curId = currentLeadIdRef.current
+    if (curId) {
+      const idx = leads.findIndex((l) => l.id === curId)
+      if (idx >= 0) {
         setCurrentIndex(idx)
-      } else if (idx < 0 && currentIndex >= leads.length) {
-        setCurrentIndex(0)
+      } else {
+        // Lead was removed — stay in bounds
+        setCurrentIndex((prev) => Math.min(prev, Math.max(0, leads.length - 1)))
       }
-    } else if (currentIndex >= leads.length) {
-      setCurrentIndex(0)
+    } else {
+      setCurrentIndex((prev) => Math.min(prev, Math.max(0, leads.length - 1)))
     }
-  }, [leads, currentIndex, currentLead?.id])
+  }, [leads]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Restore queue position from localStorage on first load
   useEffect(() => {
