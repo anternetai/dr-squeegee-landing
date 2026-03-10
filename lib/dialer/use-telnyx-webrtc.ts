@@ -134,6 +134,8 @@ export interface UseTelnyxWebRTCReturn {
   setCallStateIdle: () => void
   /** Ref to the remote audio MediaStream (callee's voice) — set when call connects */
   remoteStreamRef: React.RefObject<MediaStream | null>
+  /** Ref to the local audio MediaStream (agent's mic from Telnyx) — set when call connects */
+  localStreamRef: React.RefObject<MediaStream | null>
   /** Available audio input devices */
   audioInputDevices: AudioDevice[]
   /** Currently selected input device ID */
@@ -270,6 +272,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
   const callStartRef = useRef<number>(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const remoteStreamRef = useRef<MediaStream | null>(null)
+  const localStreamRef = useRef<MediaStream | null>(null)
   const callerIdRef = useRef<string | null>(null)
   const mountedRef = useRef(true)
   const callStateRef = useRef<CallState>("idle")
@@ -627,6 +630,11 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
             audioRef.current.srcObject = call.remoteStream
             remoteStreamRef.current = call.remoteStream as MediaStream
           }
+          // Capture local stream (agent's mic) so other hooks can share it
+          // instead of opening competing getUserMedia streams
+          if (call.localStream) {
+            localStreamRef.current = call.localStream as MediaStream
+          }
           // Noise gate disabled — let the mic hardware handle audio processing.
           // applyNoiseGate(call)
           updateCallState("connected")
@@ -648,6 +656,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
           }
           callRef.current = null
           remoteStreamRef.current = null
+          localStreamRef.current = null
           updateCallState("disconnected")
           break
       }
@@ -712,13 +721,15 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     console.log("[Telnyx] 📞 Calling:", formatted)
 
     try {
-      // Audio: just pass true (or device ID). No Chrome processing constraints.
-      // The original `audio: true` worked fine — echo/noise issues were introduced
-      // by adding constraints that fought with the Hollyland mic's built-in DSP.
-      const audio: boolean | MediaTrackConstraints =
-        selectedInputDeviceId && selectedInputDeviceId !== "default"
+      // Chrome's audio processing causes distortion — disable it entirely.
+      const audio: MediaTrackConstraints = {
+        ...(selectedInputDeviceId && selectedInputDeviceId !== "default"
           ? { deviceId: { exact: selectedInputDeviceId } }
-          : true
+          : {}),
+        noiseSuppression: false,
+        echoCancellation: false,
+        autoGainControl: false,
+      }
 
       const call = clientRef.current.newCall({
         destinationNumber: formatted,
@@ -747,6 +758,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     const call = callRef.current
     callRef.current = null
     remoteStreamRef.current = null
+    localStreamRef.current = null
 
     // Nuke ALL audio at every layer — audio element, remote stream, peer connection
     killEverything(call)
@@ -787,6 +799,7 @@ export function useTelnyxWebRTC(): UseTelnyxWebRTCReturn {
     toggleMute,
     setCallStateIdle,
     remoteStreamRef,
+    localStreamRef,
     audioInputDevices,
     selectedInputDeviceId,
     setInputDevice,

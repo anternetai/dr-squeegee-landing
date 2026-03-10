@@ -625,10 +625,13 @@ export function CallCockpit() {
 
   // Remote audio stream ref — set by PowerDialer's onRemoteStream callback
   const remoteStreamRef = useRef<MediaStream | null>(null)
+  // Local audio stream ref — set by PowerDialer's onLocalStream callback
+  // Shares Telnyx's mic stream so mixed recording doesn't open a competing one
+  const localStreamRef = useRef<MediaStream | null>(null)
 
   // Mixed audio recording (both sides of the call)
   const { recordingState, durationMs, startRecording, stopRecording, reset: resetRecording, mixedStreamRef } =
-    useMixedAudioRecording({ remoteStreamRef })
+    useMixedAudioRecording({ remoteStreamRef, localStreamRef })
   const isRecording = recordingState === "recording"
 
   // Webcam ref for session recording
@@ -1024,6 +1027,11 @@ export function CallCockpit() {
     remoteStreamRef.current = stream
   }, [])
 
+  // Local stream callback from PowerDialer — shares Telnyx's mic with recording
+  const handleLocalStream = useCallback((stream: MediaStream | null) => {
+    localStreamRef.current = stream
+  }, [])
+
   // Start session recording — auto-enable webcam, then refresh refs
   const handleStartSessionRecording = useCallback(async () => {
     if (webcamRef.current) {
@@ -1302,6 +1310,7 @@ export function CallCockpit() {
         onCancelAutoDial={() => setAutoDialActive(false)}
         onCallStateChange={handleCallStateChange}
         onRemoteStream={handleRemoteStream}
+        onLocalStream={handleLocalStream}
         hangUpRef={hangUpRef}
         countdownSeconds={15}
       />

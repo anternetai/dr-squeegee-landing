@@ -31,68 +31,13 @@ function savePrefs(prefs: PiPPrefs) {
 }
 
 // ─── Audio Level Meter ──────────────────────────────────────────────────────
+// DISABLED: useAudioLevel used to open its own getUserMedia stream just for a
+// visual bar graph. This competed with Telnyx's mic stream (and the mic test)
+// causing horrible audio — words cutting in/out, distortion. The mic hardware
+// can only serve one consumer cleanly. Not worth it for a visual indicator.
 
-function useAudioLevel(isActive: boolean) {
-  const [level, setLevel] = useState(0)
-  const audioCtxRef = useRef<AudioContext | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-  const animRef = useRef<number>(0)
-
-  useEffect(() => {
-    if (!isActive) {
-      if (animRef.current) cancelAnimationFrame(animRef.current)
-      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {})
-      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop())
-      audioCtxRef.current = null
-      streamRef.current = null
-      setLevel(0)
-      return
-    }
-
-    let cancelled = false
-
-    async function start() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return }
-        streamRef.current = stream
-
-        const ctx = new AudioContext()
-        audioCtxRef.current = ctx
-        const source = ctx.createMediaStreamSource(stream)
-        const analyser = ctx.createAnalyser()
-        analyser.fftSize = 256
-        analyser.smoothingTimeConstant = 0.5
-        source.connect(analyser)
-
-        const data = new Uint8Array(analyser.frequencyBinCount)
-
-        function tick() {
-          if (cancelled) return
-          analyser.getByteFrequencyData(data)
-          let sum = 0
-          const count = Math.min(32, data.length)
-          for (let i = 0; i < count; i++) sum += data[i]
-          setLevel(sum / count / 255)
-          animRef.current = requestAnimationFrame(tick)
-        }
-        animRef.current = requestAnimationFrame(tick)
-      } catch {
-        // Mic denied
-      }
-    }
-
-    start()
-
-    return () => {
-      cancelled = true
-      if (animRef.current) cancelAnimationFrame(animRef.current)
-      if (audioCtxRef.current) audioCtxRef.current.close().catch(() => {})
-      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop())
-    }
-  }, [isActive])
-
-  return level
+function useAudioLevel(_isActive: boolean) {
+  return 0
 }
 
 function AudioLevelBar({ level }: { level: number }) {

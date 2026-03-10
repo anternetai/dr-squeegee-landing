@@ -34,6 +34,8 @@ interface PowerDialerProps {
   onCallStateChange?: (state: CallState) => void
   /** Called when remote audio stream becomes available or is cleared */
   onRemoteStream?: (stream: MediaStream | null) => void
+  /** Called when local audio stream (agent's mic) becomes available or is cleared */
+  onLocalStream?: (stream: MediaStream | null) => void
   /** Ref that exposes hangUp to parent — so cockpit can end call on disposition */
   hangUpRef?: React.MutableRefObject<(() => void) | null>
   className?: string
@@ -87,6 +89,7 @@ export function PowerDialer({
   onCancelAutoDial,
   onCallStateChange,
   onRemoteStream,
+  onLocalStream,
   hangUpRef,
   className,
 }: PowerDialerProps) {
@@ -112,6 +115,7 @@ export function PowerDialer({
     isMuted,
     setCallStateIdle,
     remoteStreamRef,
+    localStreamRef,
     audioInputDevices,
     selectedInputDeviceId,
     setInputDevice,
@@ -127,13 +131,17 @@ export function PowerDialer({
 
   const startMicTest = useCallback(async () => {
     try {
-      // Use browser defaults for audio processing (same as audio: true).
-      // Explicitly setting false disables Chrome's processing and lets raw
-      // noise through — that's what caused the jet engine sound.
+      // Chrome's audio processing (noiseSuppression, echoCancellation, autoGainControl)
+      // causes distortion — disable it entirely and let the mic hardware handle audio.
       const constraints: MediaStreamConstraints = {
-        audio: selectedInputDeviceId && selectedInputDeviceId !== "default"
-          ? { deviceId: { exact: selectedInputDeviceId } }
-          : true,
+        audio: {
+          ...(selectedInputDeviceId && selectedInputDeviceId !== "default"
+            ? { deviceId: { exact: selectedInputDeviceId } }
+            : {}),
+          noiseSuppression: false,
+          echoCancellation: false,
+          autoGainControl: false,
+        },
       }
       const stream = await navigator.mediaDevices.getUserMedia(constraints)
       const recorder = new MediaRecorder(stream)
@@ -226,6 +234,17 @@ export function PowerDialer({
       onRemoteStream?.(null)
     }
   }, [callState, onRemoteStream, remoteStreamRef])
+
+  // ─── Relay local stream (agent's mic) to parent ────────────────────────────
+
+  useEffect(() => {
+    if (callState === "connected" && localStreamRef.current) {
+      onLocalStream?.(localStreamRef.current)
+    }
+    if (callState === "disconnected" || callState === "idle") {
+      onLocalStream?.(null)
+    }
+  }, [callState, onLocalStream, localStreamRef])
 
   // ─── Auto-reset: disconnected → idle after 2s ─────────────────────────────
 

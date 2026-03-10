@@ -6,6 +6,8 @@ import type { RecordingState } from "./ai-types"
 interface UseMixedAudioRecordingOptions {
   /** Ref to the remote audio stream (callee's voice) from Telnyx */
   remoteStreamRef: React.RefObject<MediaStream | null>
+  /** Ref to the local audio stream (agent's mic) from Telnyx — avoids opening a competing mic */
+  localStreamRef?: React.RefObject<MediaStream | null>
 }
 
 interface UseMixedAudioRecordingReturn {
@@ -30,6 +32,7 @@ interface UseMixedAudioRecordingReturn {
  */
 export function useMixedAudioRecording({
   remoteStreamRef,
+  localStreamRef,
 }: UseMixedAudioRecordingOptions): UseMixedAudioRecordingReturn {
   const [recordingState, setRecordingState] = useState<RecordingState>("idle")
   const [durationMs, setDurationMs] = useState(0)
@@ -40,6 +43,7 @@ export function useMixedAudioRecording({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const micStreamRef = useRef<MediaStream | null>(null)
+  const ownsMicStreamRef = useRef(false) // true = we opened getUserMedia, false = shared from Telnyx
   const mixedStreamRef = useRef<MediaStream | null>(null)
 
   // Cleanup on unmount
@@ -49,7 +53,8 @@ export function useMixedAudioRecording({
       if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
         try { audioCtxRef.current.close() } catch {}
       }
-      if (micStreamRef.current) {
+      // Only stop mic stream if we own it (not Telnyx's)
+      if (micStreamRef.current && ownsMicStreamRef.current) {
         micStreamRef.current.getTracks().forEach((t) => t.stop())
       }
     }
@@ -57,9 +62,21 @@ export function useMixedAudioRecording({
 
   const startRecording = useCallback(async () => {
     try {
-      // 1. Get microphone
-      const micStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // 1. Get microphone — prefer Telnyx's existing local stream to avoid
+      //    opening a competing mic that causes distortion/dropout.
+      let micStream: MediaStream
+      let ownsStream = false // track whether we need to stop this stream ourselves
+      if (localStreamRef?.current && localStreamRef.current.active && localStreamRef.current.getAudioTracks().length > 0) {
+        micStream = localStreamRef.current
+        ownsStream = false // Telnyx owns this stream, don't stop it
+        console.log("[MixedRecording] Using Telnyx local stream (no duplicate mic)")
+      } else {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        ownsStream = true
+        console.log("[MixedRecording] Fallback: opened own mic stream")
+      }
       micStreamRef.current = micStream
+      ownsMicStreamRef.current = ownsStream
 
       // 2. Create AudioContext and mix streams
       const ctx = new AudioContext()
@@ -153,9 +170,11 @@ export function useMixedAudioRecording({
           type: recorder.mimeType || "audio/webm",
         })
 
-        // Clean up mic stream (don't stop remote — Telnyx owns that)
+        // Clean up mic stream — only stop if WE opened it (not Telnyx's stream)
         if (micStreamRef.current) {
-          micStreamRef.current.getTracks().forEach((t) => t.stop())
+          if (ownsMicStreamRef.current) {
+            micStreamRef.current.getTracks().forEach((t) => t.stop())
+          }
           micStreamRef.current = null
         }
 
