@@ -746,17 +746,44 @@ export function CallCockpit() {
   )
 
   // Re-anchor index when leads array changes (e.g. after SWR re-fetch removes
-  // a dispositioned lead). Without this, the index drifts and skips leads.
+  // a dispositioned lead, or reorders leads). Without this, the index drifts
+  // and the displayed lead jumps — even mid-call.
   useEffect(() => {
-    if (targetLeadIdRef.current && leads.length > 0) {
+    if (leads.length === 0) return
+
+    // Priority 1: During an active call, anchor to the lead we're calling
+    const activeLeadId = callLeadRef.current?.id
+    if (activeLeadId) {
+      const idx = leads.findIndex((l) => l.id === activeLeadId)
+      if (idx >= 0 && idx !== currentIndex) {
+        setCurrentIndex(idx)
+      }
+      return // Don't process other anchoring during a call
+    }
+
+    // Priority 2: After disposition, anchor to the intended next lead
+    if (targetLeadIdRef.current) {
       const targetIdx = leads.findIndex((l) => l.id === targetLeadIdRef.current)
       if (targetIdx >= 0 && targetIdx !== currentIndex) {
         setCurrentIndex(targetIdx)
       }
       targetLeadIdRef.current = null
+      return
     }
-    if (leads.length > 0 && currentIndex >= leads.length) setCurrentIndex(0)
-  }, [leads, currentIndex])
+
+    // Priority 3: Keep showing the same lead if possible (array shifted under us)
+    const currentLeadId = currentLead?.id
+    if (currentLeadId) {
+      const idx = leads.findIndex((l) => l.id === currentLeadId)
+      if (idx >= 0 && idx !== currentIndex) {
+        setCurrentIndex(idx)
+      } else if (idx < 0 && currentIndex >= leads.length) {
+        setCurrentIndex(0)
+      }
+    } else if (currentIndex >= leads.length) {
+      setCurrentIndex(0)
+    }
+  }, [leads, currentIndex, currentLead?.id])
 
   // Restore queue position from localStorage on first load
   useEffect(() => {
