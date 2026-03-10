@@ -54,6 +54,7 @@ import { cn } from "@/lib/utils"
 import type { DialerLead, DialerOutcome, DialerQueueResponse } from "@/lib/dialer/types"
 import type { AIAnalysisResult, RecordingState } from "@/lib/dialer/ai-types"
 import type { CallState } from "@/lib/dialer/types"
+import { LeadCreationModal } from "./lead-creation-modal"
 import { LiveNotes } from "./live-notes"
 import { KeyboardShortcuts } from "./keyboard-shortcuts"
 import { AIAnalysisPanel } from "./ai-analysis-panel"
@@ -611,6 +612,8 @@ export function CallCockpit() {
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [autoDialActive, setAutoDialActive] = useState(false)
   const [aiSuggestedOutcome, setAiSuggestedOutcome] = useState<ColdCallOutcome | null>(null)
+  const [showLeadModal, setShowLeadModal] = useState(false)
+  const [leadModalOutcome, setLeadModalOutcome] = useState<"demo_booked" | "conversation" | "callback">("demo_booked")
 
   // AI state
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
@@ -944,16 +947,11 @@ export function CallCockpit() {
       const leadSnap = callLeadRef.current || currentLead
       if (!leadSnap || saving) return
 
-      if (outcome === "conversation" && !showNoteField) {
-        setShowNoteField(true)
+      // Demo booked or conversation → open lead creation modal instead of inline form
+      if (outcome === "demo_booked" || outcome === "conversation") {
+        setLeadModalOutcome(outcome as "demo_booked" | "conversation")
         setSelectedOutcome(outcome)
-        setTimeout(() => notesRef.current?.focus(), 100)
-        return
-      }
-      if (outcome === "demo_booked" && !showDemoDatePicker) {
-        setShowDemoDatePicker(true)
-        setShowNoteField(true)
-        setSelectedOutcome(outcome)
+        setShowLeadModal(true)
         return
       }
 
@@ -978,7 +976,7 @@ export function CallCockpit() {
         }
 
         setSessionDials((c) => c + 1)
-        if (outcome === "demo_booked") setSessionDemos((c) => c + 1)
+        // Note: demo_booked is handled by the modal path (handleLeadModalComplete)
 
         // CRITICAL: Submit disposition FIRST, before advancing.
         // This ensures the outcome is logged against the correct lead.
@@ -1040,6 +1038,67 @@ export function CallCockpit() {
   const confirmOutcome = useCallback(() => {
     if (selectedOutcome) handleDisposition(selectedOutcome)
   }, [selectedOutcome, handleDisposition])
+
+  // Handle lead creation modal completion (demo_booked / conversation)
+  const handleLeadModalComplete = useCallback(
+    async (data: { demoDate: string; email: string; notes: string }) => {
+      const leadSnap = callLeadRef.current || currentLead
+      if (!leadSnap) return
+
+      setSaving(true)
+      try {
+        const outcome = leadModalOutcome as ColdCallOutcome
+
+        // Hang up if still on call
+        const cs = currentCallStateRef.current
+        if (cs === "connecting" || cs === "ringing" || cs === "connected") {
+          hangUpRef.current?.()
+        }
+
+        // Stop recording
+        let blob: Blob | null = lastCallBlobRef.current
+        lastCallBlobRef.current = null
+        if (isRecording) {
+          blob = await stopRecording()
+        }
+
+        setSessionDials((c) => c + 1)
+        if (outcome === "demo_booked") setSessionDemos((c) => c + 1)
+
+        // Submit disposition with modal data
+        await submitDisposition(leadSnap, outcome, data.notes, data.demoDate, data.email)
+
+        // Close modal and reset
+        setShowLeadModal(false)
+        resetForm()
+        resetRecording()
+        callLeadRef.current = null
+
+        // Advance to next lead
+        let nextLeadId: string | null = null
+        if (currentIndex < leads.length - 1) {
+          nextLeadId = leads[currentIndex + 1]?.id || null
+          setCurrentIndex((i) => i + 1)
+        } else {
+          setCurrentIndex(0)
+          nextLeadId = leads[0]?.id || null
+        }
+        targetLeadIdRef.current = nextLeadId
+        mutate()
+
+        // AI analysis in background
+        if (blob && blob.size > 0) {
+          setPendingLead(leadSnap)
+          uploadAndAnalyze(leadSnap, blob, outcome).catch(console.error)
+        }
+      } catch (err) {
+        console.error("Lead modal disposition error:", err)
+      } finally {
+        setSaving(false)
+      }
+    },
+    [currentLead, leadModalOutcome, isRecording, currentIndex, leads, mutate, resetForm, resetRecording, stopRecording, uploadAndAnalyze, submitDisposition]
+  )
 
   const skipLead = useCallback(() => {
     if (currentIndex < leads.length - 1) {
@@ -1734,6 +1793,18 @@ export function CallCockpit() {
           )}
         </div>
       )}
+
+      {/* Lead Creation Modal */}
+      <LeadCreationModal
+        open={showLeadModal}
+        onOpenChange={(open) => {
+          setShowLeadModal(open)
+          if (!open) setSelectedOutcome(null)
+        }}
+        lead={callLeadRef.current || currentLead}
+        outcome={leadModalOutcome}
+        onComplete={handleLeadModalComplete}
+      />
     </>
   )
 }

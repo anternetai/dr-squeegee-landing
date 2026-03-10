@@ -109,14 +109,33 @@ export async function GET(
 
 // Allowed fields that can be updated via PATCH
 const PATCHABLE_FIELDS = new Set([
+  "legal_business_name",
+  "first_name",
+  "last_name",
+  "business_phone",
+  "cell_phone_for_notifications",
+  "email_for_notifications",
+  "business_email_for_leads",
+  "state",
+  "city",
+  "street_address",
+  "postal_code",
+  "website_url",
+  "service_type",
   "pipeline_stage",
   "pipeline_stage_changed_at",
+  "onboarding_status",
   "next_call_at",
   "next_call_type",
   "demo_call_at",
   "onboarding_call_at",
   "launch_call_at",
   "slack_channel_id",
+  "differentiator",
+  "offer",
+  "questions",
+  "working_hours",
+  "advertising_area",
 ])
 
 export async function PATCH(
