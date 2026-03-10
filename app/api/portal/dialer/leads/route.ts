@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
   const state = url.searchParams.get("state")
   const timezone = url.searchParams.get("timezone") as DialerTimezone | null
   const outcome = url.searchParams.get("outcome") as DialerOutcome | null
+  const demoBooked = url.searchParams.get("demo_booked")
   // Sanitize search: strip characters that could break PostgREST .or() filter syntax
   const rawSearch = url.searchParams.get("search")
   const search = rawSearch ? rawSearch.replace(/[%_\\(),.]/g, "") : null
@@ -56,6 +57,7 @@ export async function GET(req: NextRequest) {
   if (state) dataQuery = dataQuery.ilike("state", state)
   if (timezone) dataQuery = dataQuery.eq("timezone", timezone)
   if (outcome) dataQuery = dataQuery.eq("last_outcome", outcome)
+  if (demoBooked === "true") dataQuery = dataQuery.eq("demo_booked", true)
   if (search) {
     dataQuery = dataQuery.or(
       `business_name.ilike.%${search}%,owner_name.ilike.%${search}%,phone_number.ilike.%${search}%`
@@ -71,6 +73,7 @@ export async function GET(req: NextRequest) {
   if (state) countQuery = countQuery.ilike("state", state)
   if (timezone) countQuery = countQuery.eq("timezone", timezone)
   if (outcome) countQuery = countQuery.eq("last_outcome", outcome)
+  if (demoBooked === "true") countQuery = countQuery.eq("demo_booked", true)
   if (search) {
     countQuery = countQuery.or(
       `business_name.ilike.%${search}%,owner_name.ilike.%${search}%,phone_number.ilike.%${search}%`

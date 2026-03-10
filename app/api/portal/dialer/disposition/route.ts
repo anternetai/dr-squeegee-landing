@@ -181,7 +181,52 @@ export async function POST(req: NextRequest) {
     lead_id: leadId,
   })
 
-  // 6. Update daily_call_stats
+  // 6. Auto-create agency_client when lead shows interest
+  const interestOutcomes: DialerOutcome[] = ["demo_booked", "conversation", "callback"]
+  if (interestOutcomes.includes(outcome)) {
+    try {
+      // Check if agency_client already exists for this phone number
+      const { data: existingClient } = await admin
+        .from("agency_clients")
+        .select("id")
+        .eq("business_phone", lead.phone_number)
+        .maybeSingle()
+
+      if (!existingClient) {
+        // Parse owner name into first/last
+        const ownerName = lead.owner_name || lead.first_name || ""
+        const nameParts = ownerName.trim().split(/\s+/)
+        const firstName = nameParts[0] || ""
+        const lastName = nameParts.slice(1).join(" ") || ""
+
+        // Map outcome to pipeline stage
+        const pipelineStage =
+          outcome === "demo_booked"
+            ? "demo_scheduled"
+            : outcome === "callback"
+              ? "interested"
+              : "contacted"
+
+        await admin.from("agency_clients").insert({
+          legal_business_name: lead.business_name || "Unknown Business",
+          first_name: firstName,
+          last_name: lastName,
+          business_phone: lead.phone_number,
+          state: lead.state || null,
+          website_url: lead.website || null,
+          pipeline_stage: pipelineStage,
+          demo_call_at: outcome === "demo_booked" ? (demoDate || null) : null,
+          onboarding_status: "cold_call_lead",
+          service_type: "roofing",
+        })
+      }
+    } catch (err) {
+      console.error("Failed to auto-create agency_client:", err)
+      // Non-fatal — don't block disposition
+    }
+  }
+
+  // 7. Update daily_call_stats
   const today = new Date().toISOString().split("T")[0]
   const { data: todayStats } = await admin
     .from("daily_call_stats")
@@ -209,7 +254,7 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  // 7. Update phone number rotation counters
+  // 8. Update phone number rotation counters
   if (callerNumberId) {
     try {
       const { data: phoneNum } = await admin

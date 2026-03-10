@@ -187,27 +187,25 @@ function StatBadge({ label, value, color }: { label: string; value: number; colo
 
 function UpcomingDemosCard() {
   const { data, isLoading } = useSWR<DialerLeadsResponse>(
-    "/api/portal/dialer/leads?limit=100&sort=last_called_at&order=desc",
+    "/api/portal/dialer/leads?demo_booked=true&limit=50&sort=last_called_at&order=desc",
     fetcher,
-    { revalidateOnFocus: false, refreshInterval: 120000 }
+    { revalidateOnFocus: true, refreshInterval: 30000 }
   )
 
   const demos = useMemo(() => {
     const leads = data?.leads ?? []
-    return leads
-      .filter((l) => l.demo_booked)
-      .sort((a, b) => {
-        // Upcoming first, then past
-        const aDate = a.demo_date ? new Date(a.demo_date).getTime() : 0
-        const bDate = b.demo_date ? new Date(b.demo_date).getTime() : 0
-        const now = Date.now()
-        const aFuture = aDate > now
-        const bFuture = bDate > now
-        if (aFuture && !bFuture) return -1
-        if (!aFuture && bFuture) return 1
-        if (aFuture && bFuture) return aDate - bDate
-        return bDate - aDate
-      })
+    return [...leads].sort((a, b) => {
+      // Upcoming first, then past
+      const aDate = a.demo_date ? new Date(a.demo_date).getTime() : 0
+      const bDate = b.demo_date ? new Date(b.demo_date).getTime() : 0
+      const now = Date.now()
+      const aFuture = aDate > now
+      const bFuture = bDate > now
+      if (aFuture && !bFuture) return -1
+      if (!aFuture && bFuture) return 1
+      if (aFuture && bFuture) return aDate - bDate
+      return bDate - aDate
+    })
   }, [data])
 
   return (
