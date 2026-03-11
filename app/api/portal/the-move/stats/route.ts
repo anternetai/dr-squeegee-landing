@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js"
 import { createClient as createServerClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { getDaysUntilMove, getCurrentPhase } from "@/lib/the-move/constants"
-import type { MoveStats } from "@/lib/the-move/types"
+import type { MoveStats, DoorVisit } from "@/lib/the-move/types"
 
 function getAdmin() {
   return createClient(
@@ -41,6 +41,7 @@ export async function GET() {
     weekDialsRes,
     todayDialsRes,
     knocksRes,
+    territoryDoorsRes,
     pwRevenueRes,
     pwJobsRes,
   ] = await Promise.all([
@@ -63,20 +64,25 @@ export async function GET() {
       .select("*", { count: "exact", head: true })
       .eq("call_date", today),
 
-    // 4. This week's door knocks
+    // 4. This week's door knocks (session-based)
     admin
       .from("door_knocks")
       .select("doors_knocked, doors_opened, pitches_given, jobs_closed")
       .gte("session_date", weekStart),
 
-    // 5. This month's PW revenue
+    // 5. Territory doors (per-door tracking) — fetch visits to filter client-side
+    admin
+      .from("territory_doors")
+      .select("visits"),
+
+    // 6. This month's PW revenue
     admin
       .from("squeegee_invoices")
       .select("amount")
       .eq("status", "paid")
       .gte("created_at", monthStart),
 
-    // 6. This month's completed PW jobs
+    // 7. This month's completed PW jobs
     admin
       .from("squeegee_jobs")
       .select("*", { count: "exact", head: true })
@@ -89,6 +95,21 @@ export async function GET() {
   const knocks = knocksRes.data || []
   const invoices = pwRevenueRes.data || []
 
+  // Aggregate territory door visits for this week
+  const territoryDoors = territoryDoorsRes.data || []
+  let tdKnocked = 0, tdOpened = 0, tdPitched = 0, tdClosed = 0
+  for (const door of territoryDoors) {
+    const visits: DoorVisit[] = door.visits || []
+    for (const v of visits) {
+      if (v.date >= weekStart) {
+        tdKnocked++
+        if (v.answered) tdOpened++
+        if (v.pitched) tdPitched++
+        if (v.closed) tdClosed++
+      }
+    }
+  }
+
   const stats: MoveStats = {
     activeClients: clients.length,
     clientNames: clients.map((c) => c.legal_business_name).filter(Boolean),
@@ -96,10 +117,10 @@ export async function GET() {
     weekConversations: weekCalls.filter((c) => c.outcome === "conversation" || c.outcome === "demo_booked").length,
     weekDemos: weekCalls.filter((c) => c.outcome === "demo_booked").length,
     todayDials: todayDialsRes.count || 0,
-    weekDoorsKnocked: knocks.reduce((sum, k) => sum + (k.doors_knocked || 0), 0),
-    weekDoorsOpened: knocks.reduce((sum, k) => sum + (k.doors_opened || 0), 0),
-    weekPitchesGiven: knocks.reduce((sum, k) => sum + (k.pitches_given || 0), 0),
-    weekJobsClosed: knocks.reduce((sum, k) => sum + (k.jobs_closed || 0), 0),
+    weekDoorsKnocked: knocks.reduce((sum, k) => sum + (k.doors_knocked || 0), 0) + tdKnocked,
+    weekDoorsOpened: knocks.reduce((sum, k) => sum + (k.doors_opened || 0), 0) + tdOpened,
+    weekPitchesGiven: knocks.reduce((sum, k) => sum + (k.pitches_given || 0), 0) + tdPitched,
+    weekJobsClosed: knocks.reduce((sum, k) => sum + (k.jobs_closed || 0), 0) + tdClosed,
     monthPWRevenue: invoices.reduce((sum, i) => sum + (Number(i.amount) || 0), 0),
     monthPWJobs: pwJobsRes.count || 0,
     daysUntilMove: getDaysUntilMove(),
