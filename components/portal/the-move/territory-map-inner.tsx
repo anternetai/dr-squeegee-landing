@@ -52,13 +52,13 @@ function MapReady({ onReady }: { onReady: (map: L.Map) => void }) {
   return null
 }
 
-function MapCenterUpdater({ center }: { center: { lat: number; lng: number } | null }) {
+function MapCenterUpdater({ center, zoom }: { center: { lat: number; lng: number } | null; zoom?: number }) {
   const map = useMap()
   useEffect(() => {
     if (center) {
-      map.setView([center.lat, center.lng], 16)
+      map.setView([center.lat, center.lng], zoom ?? 16)
     }
-  }, [center, map])
+  }, [center, zoom, map])
   return null
 }
 
@@ -68,6 +68,7 @@ interface Props {
   onDoorClick: (door: TerritoryDoor) => void
   onMapReady: (map: L.Map) => void
   center?: { lat: number; lng: number } | null
+  zoom?: number
 }
 
 export default function TerritoryMapInner({
@@ -76,6 +77,7 @@ export default function TerritoryMapInner({
   onDoorClick,
   onMapReady,
   center,
+  zoom,
 }: Props) {
   return (
     <div className="overflow-hidden rounded-xl border border-stone-800" style={{ height: "65vh" }}>
@@ -90,7 +92,7 @@ export default function TerritoryMapInner({
         />
         <ClickHandler onClick={onMapClick} />
         <MapReady onReady={onMapReady} />
-        {center && <MapCenterUpdater center={center} />}
+        {center && <MapCenterUpdater center={center} zoom={zoom} />}
 
         {doors.map((door) => (
           <Marker

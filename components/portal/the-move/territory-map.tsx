@@ -20,10 +20,17 @@ interface TerritoryMapProps {
   onMapClick: (lat: number, lng: number) => void
   onDoorClick: (door: TerritoryDoor) => void
   center?: { lat: number; lng: number } | null
+  zoom?: number
+  onMapReady?: (map: any) => void
 }
 
-export function TerritoryMap({ doors, onMapClick, onDoorClick, center }: TerritoryMapProps) {
+export function TerritoryMap({ doors, onMapClick, onDoorClick, center, zoom, onMapReady }: TerritoryMapProps) {
   const [mapInstance, setMapInstance] = useState<any>(null)
+
+  const handleMapReady = useCallback((map: any) => {
+    setMapInstance(map)
+    onMapReady?.(map)
+  }, [onMapReady])
 
   const handleLocateMe = useCallback(() => {
     if (!navigator.geolocation) return
@@ -44,8 +51,9 @@ export function TerritoryMap({ doors, onMapClick, onDoorClick, center }: Territo
         doors={doors}
         onMapClick={onMapClick}
         onDoorClick={onDoorClick}
-        onMapReady={setMapInstance}
+        onMapReady={handleMapReady}
         center={center}
+        zoom={zoom}
       />
 
       <Button

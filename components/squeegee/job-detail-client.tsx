@@ -28,6 +28,7 @@ import {
   Clock,
   CalendarPlus,
   CalendarSync,
+  Send,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -434,7 +435,22 @@ export function JobDetailClient({ job: initialJob }: Props) {
           <p className="text-sm bg-muted rounded-lg p-4 whitespace-pre-wrap font-mono leading-relaxed">
             {quoteText}
           </p>
-          <CopyButton text={quoteText} />
+          <div className="flex gap-2">
+            <CopyButton text={quoteText} />
+            {job.client_phone && (
+              <Button
+                asChild
+                variant="default"
+                size="sm"
+                className="gap-1.5 bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white"
+              >
+                <a href={`sms:${job.client_phone.replace(/[^\d+]/g, "")}&body=${encodeURIComponent(quoteText)}`}>
+                  <Send className="h-3.5 w-3.5" />
+                  Text Quote
+                </a>
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -452,7 +468,22 @@ export function JobDetailClient({ job: initialJob }: Props) {
               <p className="text-sm bg-muted rounded-lg p-4 whitespace-pre-wrap font-mono leading-relaxed">
                 {confirmText}
               </p>
-              <CopyButton text={confirmText} />
+              <div className="flex gap-2">
+                <CopyButton text={confirmText} />
+                {job.client_phone && (
+                  <Button
+                    asChild
+                    variant="default"
+                    size="sm"
+                    className="gap-1.5 bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white"
+                  >
+                    <a href={`sms:${job.client_phone.replace(/[^\d+]/g, "")}&body=${encodeURIComponent(confirmText)}`}>
+                      <Send className="h-3.5 w-3.5" />
+                      Text Confirm
+                    </a>
+                  </Button>
+                )}
+              </div>
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -478,6 +509,7 @@ function InfoRow({
 }) {
   if (!value) return null
   const isAddress = label === "Address"
+  const isPhone = label === "Phone"
   return (
     <div className={cn("flex items-start gap-2", className)}>
       <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -488,6 +520,13 @@ function InfoRow({
             href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(value)}`}
             target="_blank"
             rel="noopener noreferrer"
+            className="text-sm text-[#3A6B4C] hover:underline"
+          >
+            {value}
+          </a>
+        ) : isPhone ? (
+          <a
+            href={`sms:${value.replace(/[^\d+]/g, "")}`}
             className="text-sm text-[#3A6B4C] hover:underline"
           >
             {value}

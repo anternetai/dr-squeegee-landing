@@ -28,8 +28,10 @@ export interface DoorKnockNeighborhood {
   id: string
   name: string
   notes: string | null
+  address: string | null
   center_lat: number | null
   center_lng: number | null
+  zoom_level: number | null
   created_at: string
 }
 

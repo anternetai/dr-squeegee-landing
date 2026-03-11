@@ -96,10 +96,16 @@ export default async function JobsPage({ searchParams }: PageProps) {
                         <td className="px-4 py-3">
                           <Link href={`/crm/jobs/${job.id}`} className="block">
                             <span className="font-medium">{job.client_name}</span>
-                            {job.client_phone && (
-                              <span className="block text-xs text-muted-foreground">{job.client_phone}</span>
-                            )}
                           </Link>
+                          {job.client_phone && (
+                            <a
+                              href={`sms:${job.client_phone.replace(/[^\d+]/g, "")}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="block text-xs text-[#3A6B4C] hover:underline"
+                            >
+                              {job.client_phone}
+                            </a>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground max-w-[180px] truncate">
                           <Link href={`/crm/jobs/${job.id}`} className="block">

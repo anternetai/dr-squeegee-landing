@@ -29,6 +29,7 @@ function InfoRow({
 }) {
   if (!value) return null
   const isAddress = label === "Address"
+  const isPhone = label === "Phone"
   return (
     <div className={cn("flex items-start gap-2", className)}>
       <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -39,6 +40,13 @@ function InfoRow({
             href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(value)}`}
             target="_blank"
             rel="noopener noreferrer"
+            className="text-sm text-[#3A6B4C] hover:underline"
+          >
+            {value}
+          </a>
+        ) : isPhone ? (
+          <a
+            href={`sms:${value.replace(/[^\d+]/g, "")}`}
             className="text-sm text-[#3A6B4C] hover:underline"
           >
             {value}
