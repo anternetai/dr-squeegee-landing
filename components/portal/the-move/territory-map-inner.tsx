@@ -37,7 +37,7 @@ function createDoorIcon(door: TerritoryDoor) {
 
 function ClickHandler({ onClick }: { onClick: (lat: number, lng: number) => void }) {
   useMapEvents({
-    click(e) {
+    click(e: { latlng: { lat: number; lng: number } }) {
       onClick(e.latlng.lat, e.latlng.lng)
     },
   })
