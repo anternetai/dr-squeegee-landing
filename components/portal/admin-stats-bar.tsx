@@ -1,6 +1,7 @@
 "use client"
 
 import { Users, DollarSign, Phone } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCurrency } from "@/lib/portal/format"
@@ -55,31 +56,35 @@ export function AdminStatsBar({ clients, isLoading }: AdminStatsBarProps) {
       value: clients ? getPipelineSummary(clients) : null,
       icon: Users,
       isText: true,
+      accent: "border-orange-500/70",
     },
     {
       title: "Total Revenue",
       value: clients ? formatCurrency(getRevenueThisMonth(clients)) : null,
       icon: DollarSign,
       isText: false,
+      accent: "border-green-500/70",
     },
     {
       title: "Upcoming Calls",
       value: clients ? String(getUpcomingCalls(clients)) : null,
       icon: Phone,
       isText: false,
+      accent: "border-blue-500/70",
     },
     {
       title: "Active Clients",
       value: clients ? String(clients.length) : null,
       icon: Users,
       isText: false,
+      accent: "border-purple-500/70",
     },
   ]
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat) => (
-        <Card key={stat.title}>
+        <Card key={stat.title} className={cn("border-t-2 transition-shadow hover:shadow-lg dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)]", stat.accent)}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               {stat.title}

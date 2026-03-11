@@ -55,7 +55,7 @@ export function UpcomingSchedule({ clients }: UpcomingScheduleProps) {
                 onClick={() =>
                   router.push(`/portal/admin/clients/${client.id}`)
                 }
-                className="flex w-full items-center gap-3 py-3 text-left transition-colors first:pt-0 last:pb-0 hover:bg-accent/50 -mx-2 px-2 rounded-md"
+                className="flex w-full items-center gap-3 py-3 text-left transition-all first:pt-0 last:pb-0 hover:bg-accent/50 -mx-2 px-2 rounded-md dark:hover:bg-orange-500/5 dark:hover:shadow-[inset_2px_0_0_rgb(249,115,22)]"
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">

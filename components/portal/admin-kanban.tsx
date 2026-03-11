@@ -49,7 +49,7 @@ function KanbanCard({
         e.dataTransfer.effectAllowed = "move"
       }}
       onClick={() => router.push(`/portal/admin/clients/${client.id}`)}
-      className="cursor-grab select-none p-3 transition-shadow hover:shadow-md active:cursor-grabbing active:shadow-lg"
+      className="cursor-grab select-none p-3 transition-all hover:shadow-lg dark:hover:shadow-[0_4px_16px_rgba(0,0,0,0.5)] dark:hover:border-orange-500/20 active:cursor-grabbing active:shadow-xl"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
@@ -121,7 +121,7 @@ function KanbanColumn({
       )}
     >
       {/* Column header */}
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between border-b border-border/40 pb-2">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold">{config.label}</h3>
           <Badge

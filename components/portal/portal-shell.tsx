@@ -37,7 +37,7 @@ export function PortalShell({ children, user, initialTeamMember }: PortalShellPr
         />
         <SidebarInset>
           <PortalHeader />
-          <main id="main-content" className="flex-1 overflow-auto p-4 md:p-6">
+          <main id="main-content" className="flex-1 overflow-auto p-4 md:p-6 dark:bg-gradient-to-b dark:from-background dark:to-background/95">
             {children}
           </main>
         </SidebarInset>

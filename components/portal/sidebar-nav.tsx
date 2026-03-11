@@ -176,7 +176,7 @@ function CollapsibleNavGroup({
               const active = isItemActive(item.href, pathname)
               return (
                 <SidebarMenuSubItem key={item.href}>
-                  <SidebarMenuSubButton asChild isActive={active}>
+                  <SidebarMenuSubButton asChild isActive={active} className={active ? "dark:shadow-[0_0_6px_rgba(249,115,22,0.12)]" : ""}>
                     <Link href={item.href} onClick={onNavClick}>
                       <item.icon
                         className={`size-3.5 ${
@@ -241,6 +241,7 @@ export function SidebarNav({ user }: SidebarNavProps) {
                       asChild
                       isActive={active}
                       tooltip={item.label}
+                      className={active ? "relative bg-sidebar-accent/60 before:absolute before:left-0 before:top-1/2 before:h-5 before:-translate-y-1/2 before:w-[3px] before:rounded-full before:bg-orange-500 dark:shadow-[0_0_8px_rgba(249,115,22,0.15)]" : ""}
                     >
                       <Link href={item.href} onClick={handleNavClick}>
                         <item.icon
