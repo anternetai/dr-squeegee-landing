@@ -8,11 +8,11 @@ import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 
 const navItems = [
+  { label: "Territories", href: "/crm/territories", icon: MapPin },
   { label: "Dashboard", href: "/crm", icon: LayoutDashboard },
   { label: "Jobs", href: "/crm/jobs", icon: Briefcase },
   { label: "Clients", href: "/crm/clients", icon: Users },
   { label: "Calendar", href: "/crm/calendar", icon: CalendarDays },
-  { label: "Territories", href: "/crm/territories", icon: MapPin },
 ]
 
 export function SqueegeeNav() {
