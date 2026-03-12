@@ -20,22 +20,39 @@ interface PageProps {
 
 export default async function JobsPage({ searchParams }: PageProps) {
   const { status } = await searchParams
-  const supabase = await createClient()
 
-  let query = supabase
-    .from("squeegee_jobs")
-    .select("*")
-    .order("created_at", { ascending: false })
+  let allJobs: SqueegeeJob[] = []
+  let fetchError: string | null = null
 
-  if (status && STATUS_ORDER.includes(status as JobStatus)) {
-    query = query.eq("status", status)
+  try {
+    const supabase = await createClient()
+
+    let query = supabase
+      .from("squeegee_jobs")
+      .select("*")
+      .order("created_at", { ascending: false })
+
+    if (status && STATUS_ORDER.includes(status as JobStatus)) {
+      query = query.eq("status", status)
+    }
+
+    const { data: jobs, error } = await query
+    if (error) {
+      fetchError = error.message
+    } else {
+      allJobs = (jobs || []) as SqueegeeJob[]
+    }
+  } catch (e) {
+    fetchError = e instanceof Error ? e.message : "Unknown error"
   }
-
-  const { data: jobs } = await query
-  const allJobs = (jobs || []) as SqueegeeJob[]
 
   return (
     <div className="space-y-5">
+      {fetchError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800 p-4 text-sm text-red-700 dark:text-red-300">
+          Error loading jobs: {fetchError}
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
