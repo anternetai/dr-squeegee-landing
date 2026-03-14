@@ -1,7 +1,7 @@
 "use client"
 
 import { use, Suspense, useState, useEffect, lazy } from "react"
-import { redirect } from "next/navigation"
+import { redirect, useRouter, useSearchParams } from "next/navigation"
 import { PortalAuthContext } from "@/components/portal/portal-auth-provider"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -12,28 +12,55 @@ import { Gauge, BarChart2, List, GitBranch } from "lucide-react"
 const TAB_STORAGE_KEY = "cold-calls-active-tab"
 type ActiveTab = "cockpit" | "stats" | "leads" | "pipeline"
 
-function useActiveTab(): [ActiveTab, (t: ActiveTab) => void] {
-  const [tab, setTab] = useState<ActiveTab>("cockpit")
+const VALID_TABS: ActiveTab[] = ["cockpit", "stats", "leads", "pipeline"]
 
-  useEffect(() => {
+function isValidTab(v: string | null): v is ActiveTab {
+  return VALID_TABS.includes(v as ActiveTab)
+}
+
+/**
+ * Reads active tab from:
+ *  1. URL ?tab= param (highest priority — enables deep-linking)
+ *  2. localStorage (persists last-used tab across sessions)
+ *  3. Default: "cockpit"
+ *
+ * When the user manually changes tabs, we update both localStorage and the URL
+ * (replaceState so it doesn't pollute browser history).
+ */
+function useActiveTab(): [ActiveTab, (t: ActiveTab) => void] {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const urlTab = searchParams.get("tab")
+
+  const [tab, setTab] = useState<ActiveTab>(() => {
+    // URL param takes priority (evaluated once on mount)
+    if (isValidTab(urlTab)) return urlTab
+    // Fall back to localStorage
     try {
       const stored = localStorage.getItem(TAB_STORAGE_KEY)
-      if (
-        stored === "cockpit" ||
-        stored === "stats" ||
-        stored === "leads" ||
-        stored === "pipeline"
-      ) {
-        setTab(stored as ActiveTab)
-      }
+      if (isValidTab(stored)) return stored
     } catch {}
-  }, [])
+    return "cockpit"
+  })
+
+  // If URL tab changes (e.g. back/forward nav), sync state
+  useEffect(() => {
+    if (isValidTab(urlTab) && urlTab !== tab) {
+      setTab(urlTab)
+    }
+    // Only react to URL changes, not internal tab state changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlTab])
 
   const setAndSave = (t: ActiveTab) => {
     setTab(t)
     try {
       localStorage.setItem(TAB_STORAGE_KEY, t)
     } catch {}
+    // Update URL without adding a history entry
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("tab", t)
+    router.replace(`/portal/cold-calls?${params.toString()}`, { scroll: false })
   }
 
   return [tab, setAndSave]
