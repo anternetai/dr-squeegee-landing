@@ -29,6 +29,7 @@ import {
   CalendarPlus,
   CalendarSync,
   Send,
+  Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -90,6 +91,7 @@ export function JobDetailClient({ job: initialJob }: Props) {
   const [editError, setEditError] = useState<string | null>(null)
   const [calSyncing, setCalSyncing] = useState(false)
   const [calSynced, setCalSynced] = useState(!!initialJob.google_calendar_event_id)
+  const [deleting, setDeleting] = useState(false)
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -222,6 +224,24 @@ export function JobDetailClient({ job: initialJob }: Props) {
       appointment_time: job.appointment_time || "",
     })
     setEditing(true)
+  }
+
+  async function deleteJob() {
+    if (!window.confirm(`Delete job for ${job.client_name}? This cannot be undone.`)) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/squeegee/jobs/${job.id}`, { method: "DELETE" })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        alert(body.error ?? "Failed to delete job.")
+        setDeleting(false)
+        return
+      }
+      router.push("/crm/jobs")
+    } catch {
+      alert("Network error — job was not deleted.")
+      setDeleting(false)
+    }
   }
 
   const showAppointmentFields =
@@ -492,6 +512,35 @@ export function JobDetailClient({ job: initialJob }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* Danger Zone */}
+      <div className="rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20 p-4">
+        <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide mb-3">
+          Danger Zone
+        </p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-foreground">Delete this job</p>
+            <p className="text-xs text-muted-foreground">
+              Permanently removes the job, quotes, invoices, and all activity. Cannot be undone.
+            </p>
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={deleteJob}
+            disabled={deleting}
+            className="shrink-0 gap-1.5"
+          >
+            {deleting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="h-3.5 w-3.5" />
+            )}
+            {deleting ? "Deleting…" : "Delete Job"}
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

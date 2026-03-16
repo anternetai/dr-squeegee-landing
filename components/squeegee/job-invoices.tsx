@@ -18,6 +18,9 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Trash2,
+  Pencil,
+  AlertTriangle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -74,6 +77,8 @@ export function JobInvoices({ job }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     amount: job.price != null ? String(job.price) : "",
@@ -166,6 +171,38 @@ export function JobInvoices({ job }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ payment_method: paymentMethod }),
+      })
+      await fetchInvoices()
+    } catch {
+      // silent
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  async function handleDeleteInvoice(invoiceId: string) {
+    setDeletingId(invoiceId)
+    try {
+      await fetch(`/api/squeegee/invoices/${invoiceId}`, { method: "DELETE" })
+      await fetchInvoices()
+    } catch {
+      // silent
+    } finally {
+      setDeletingId(null)
+      setConfirmDeleteId(null)
+    }
+  }
+
+  async function handleEditInvoice(
+    invoiceId: string,
+    fields: { amount?: number; due_date?: string | null; notes?: string | null }
+  ) {
+    setUpdatingId(invoiceId)
+    try {
+      await fetch(`/api/squeegee/invoices/${invoiceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fields),
       })
       await fetchInvoices()
     } catch {
@@ -309,8 +346,14 @@ export function JobInvoices({ job }: Props) {
                 key={inv.id}
                 invoice={inv}
                 isUpdating={updatingId === inv.id}
+                isDeleting={deletingId === inv.id}
+                confirmingDelete={confirmDeleteId === inv.id}
                 onMarkSent={() => updateStatus(inv.id, "sent")}
                 onMarkPaid={(method) => markPaid(inv.id, method)}
+                onRequestDelete={() => setConfirmDeleteId(inv.id)}
+                onCancelDelete={() => setConfirmDeleteId(null)}
+                onConfirmDelete={() => handleDeleteInvoice(inv.id)}
+                onEdit={(fields) => handleEditInvoice(inv.id, fields)}
               />
             ))}
           </div>
@@ -337,16 +380,58 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
 function InvoiceRow({
   invoice,
   isUpdating,
+  isDeleting,
+  confirmingDelete,
   onMarkSent,
   onMarkPaid,
+  onRequestDelete,
+  onCancelDelete,
+  onConfirmDelete,
+  onEdit,
 }: {
   invoice: SqueegeeInvoice
   isUpdating: boolean
+  isDeleting: boolean
+  confirmingDelete: boolean
   onMarkSent: () => void
   onMarkPaid: (method: string) => void
+  onRequestDelete: () => void
+  onCancelDelete: () => void
+  onConfirmDelete: () => void
+  onEdit: (fields: { amount?: number; due_date?: string | null; notes?: string | null }) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [showPaymentMethods, setShowPaymentMethods] = useState(false)
+  const [showEditForm, setShowEditForm] = useState(false)
+  const [editAmount, setEditAmount] = useState(String(invoice.amount))
+  const [editDueDate, setEditDueDate] = useState(invoice.due_date ?? "")
+  const [editNotes, setEditNotes] = useState(invoice.notes ?? "")
+  const [editError, setEditError] = useState<string | null>(null)
+
+  function handleOpenEdit() {
+    setEditAmount(String(invoice.amount))
+    setEditDueDate(invoice.due_date ?? "")
+    setEditNotes(invoice.notes ?? "")
+    setEditError(null)
+    setShowEditForm(true)
+  }
+
+  function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    const amount = parseFloat(editAmount)
+    if (isNaN(amount) || amount <= 0) {
+      setEditError("Amount must be a positive number.")
+      return
+    }
+    setEditError(null)
+    setShowEditForm(false)
+    onEdit({
+      amount,
+      due_date: editDueDate || null,
+      notes: editNotes.trim() || null,
+    })
+  }
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
@@ -374,6 +459,49 @@ function InvoiceRow({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="font-semibold">${Number(invoice.amount).toFixed(2)}</span>
+          {/* Edit button */}
+          {invoice.status !== "paid" && (
+            <button
+              type="button"
+              title="Edit invoice"
+              onClick={(e) => { e.stopPropagation(); handleOpenEdit() }}
+              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {/* Delete controls */}
+          {confirmingDelete ? (
+            <div
+              className="flex items-center gap-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={onConfirmDelete}
+                disabled={isDeleting}
+                className="px-2 py-0.5 rounded bg-red-500 text-white text-xs font-medium hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-1"
+              >
+                {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : "Delete"}
+              </button>
+              <button
+                type="button"
+                onClick={onCancelDelete}
+                className="p-1 rounded hover:bg-muted text-muted-foreground transition-colors"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              title="Delete invoice"
+              onClick={(e) => { e.stopPropagation(); onRequestDelete() }}
+              className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors dark:hover:bg-red-900/20"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
           {expanded ? (
             <ChevronUp className="h-4 w-4 text-muted-foreground" />
           ) : (
@@ -381,6 +509,86 @@ function InvoiceRow({
           )}
         </div>
       </div>
+
+      {/* Inline edit form */}
+      {showEditForm && (
+        <div
+          className="border-t border-[#3A6B4C]/30 px-4 py-3 bg-[#3A6B4C]/5 space-y-3"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-[#3A6B4C]">Edit Invoice</p>
+            <button
+              type="button"
+              onClick={() => { setShowEditForm(false); setEditError(null) }}
+              className="p-1 rounded hover:bg-muted text-muted-foreground transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <form onSubmit={handleSaveEdit} className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Amount ($) <span className="text-destructive">*</span></Label>
+                <Input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={editAmount}
+                  onChange={(e) => setEditAmount(e.target.value)}
+                  className="h-8 text-sm"
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Due Date</Label>
+                <Input
+                  type="date"
+                  value={editDueDate}
+                  onChange={(e) => setEditDueDate(e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs">Notes</Label>
+                <Textarea
+                  rows={2}
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="Optional note…"
+                  className="text-sm"
+                />
+              </div>
+            </div>
+            {editError && (
+              <div className="flex items-center gap-1.5 text-xs text-destructive">
+                <AlertTriangle className="h-3 w-3 shrink-0" />
+                {editError}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isUpdating}
+                className="bg-[#3A6B4C] hover:bg-[#2F5A3F] text-white h-7 text-xs px-3"
+              >
+                {isUpdating && <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />}
+                Save
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-3"
+                onClick={() => { setShowEditForm(false); setEditError(null) }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Expanded actions */}
       {expanded && (

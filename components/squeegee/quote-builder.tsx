@@ -6,7 +6,7 @@ import { SqueegeeJob } from "@/lib/squeegee/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { FileText, Check, Copy, Loader2, ExternalLink } from "lucide-react"
+import { FileText, Check, Copy, Loader2, ExternalLink, Trash2, Pencil, X, AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const QUOTE_SERVICES = [
@@ -91,6 +91,12 @@ export function QuoteBuilder({ job }: Props) {
   const [generatedToken, setGeneratedToken] = useState<string | null>(null)
   const [pastQuotes, setPastQuotes] = useState<QuoteRecord[]>([])
   const [loadingQuotes, setLoadingQuotes] = useState(true)
+  const [deletingToken, setDeletingToken] = useState<string | null>(null)
+  const [confirmDeleteToken, setConfirmDeleteToken] = useState<string | null>(null)
+  const [editingQuote, setEditingQuote] = useState<QuoteRecord | null>(null)
+  const [editPrices, setEditPrices] = useState<Record<string, string>>({})
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
 
   const fetchPastQuotes = useCallback(async () => {
     setLoadingQuotes(true)
@@ -175,6 +181,67 @@ export function QuoteBuilder({ job }: Props) {
       setError(err instanceof Error ? err.message : "Unknown error")
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleDeleteQuote(token: string) {
+    setDeletingToken(token)
+    try {
+      await fetch(`/api/squeegee/quotes/${token}`, { method: "DELETE" })
+      await fetchPastQuotes()
+      router.refresh()
+    } catch {
+      // silent
+    } finally {
+      setDeletingToken(null)
+      setConfirmDeleteToken(null)
+    }
+  }
+
+  function openEditQuote(q: QuoteRecord) {
+    const prices: Record<string, string> = {}
+    q.services.forEach((s) => { prices[s.name] = String(s.price) })
+    setEditPrices(prices)
+    setEditError(null)
+    setEditingQuote(q)
+  }
+
+  async function handleSaveEdit() {
+    if (!editingQuote) return
+    setEditLoading(true)
+    setEditError(null)
+
+    const services = editingQuote.services.map((s) => ({
+      name: s.name,
+      price: parseFloat(editPrices[s.name] ?? String(s.price)),
+    }))
+
+    if (services.some((s) => isNaN(s.price) || s.price < 0)) {
+      setEditError("All prices must be valid numbers.")
+      setEditLoading(false)
+      return
+    }
+
+    const total_price = services.reduce((sum, s) => sum + s.price, 0)
+
+    try {
+      const res = await fetch(`/api/squeegee/quotes/${editingQuote.token}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ services, total_price }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        setEditError(d.error ?? "Failed to save changes.")
+        return
+      }
+      setEditingQuote(null)
+      await fetchPastQuotes()
+      router.refresh()
+    } catch {
+      setEditError("Network error. Please try again.")
+    } finally {
+      setEditLoading(false)
     }
   }
 
@@ -375,32 +442,133 @@ export function QuoteBuilder({ job }: Props) {
             </p>
             <div className="space-y-2">
               {pastQuotes.map((q) => (
-                <div
-                  key={q.id}
-                  className="flex items-center justify-between gap-2 text-xs bg-muted/50 rounded-md px-3 py-2"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <a
-                      href={`https://drsqueegeeclt.com/q/${q.token}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-mono text-[#3A6B4C] hover:underline truncate"
-                    >
-                      /q/{q.token}
-                    </a>
-                    <span className="text-muted-foreground hidden sm:inline">·</span>
-                    <span className="text-muted-foreground hidden sm:inline tabular-nums">
-                      ${Number(q.total_price).toFixed(2)}
-                    </span>
+                <div key={q.id} className="space-y-0">
+                  <div className="flex items-center justify-between gap-2 text-xs bg-muted/50 rounded-md px-3 py-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <a
+                        href={`https://drsqueegeeclt.com/q/${q.token}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-[#3A6B4C] hover:underline truncate"
+                      >
+                        /q/{q.token}
+                      </a>
+                      <span className="text-muted-foreground hidden sm:inline">·</span>
+                      <span className="text-muted-foreground hidden sm:inline tabular-nums">
+                        ${Number(q.total_price).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span
+                        className={cn(
+                          "px-2 py-0.5 rounded-full border text-xs font-medium whitespace-nowrap",
+                          STATUS_BADGE[q.status]
+                        )}
+                      >
+                        {STATUS_LABELS[q.status]}
+                      </span>
+                      {/* Edit button */}
+                      <button
+                        type="button"
+                        onClick={() => openEditQuote(q)}
+                        title="Edit quote prices"
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
+                      {/* Delete button / confirm */}
+                      {confirmDeleteToken === q.token ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteQuote(q.token)}
+                            disabled={deletingToken === q.token}
+                            className="px-2 py-0.5 rounded bg-red-500 text-white text-xs font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+                          >
+                            {deletingToken === q.token ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              "Delete"
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteToken(null)}
+                            className="p-1 rounded hover:bg-muted text-muted-foreground transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteToken(q.token)}
+                          title="Delete quote"
+                          className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <span
-                    className={cn(
-                      "px-2 py-0.5 rounded-full border text-xs font-medium whitespace-nowrap",
-                      STATUS_BADGE[q.status]
-                    )}
-                  >
-                    {STATUS_LABELS[q.status]}
-                  </span>
+
+                  {/* Inline edit form */}
+                  {editingQuote?.token === q.token && (
+                    <div className="border border-[#3A6B4C]/30 rounded-md p-3 bg-[#3A6B4C]/5 space-y-3 mt-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium text-[#3A6B4C]">Edit Prices</p>
+                        <button
+                          type="button"
+                          onClick={() => { setEditingQuote(null); setEditError(null) }}
+                          className="p-1 rounded hover:bg-muted text-muted-foreground transition-colors"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {q.services.map((s) => (
+                          <div key={s.name} className="flex items-center gap-2">
+                            <span className="text-xs flex-1">{s.name}</span>
+                            <span className="text-xs text-muted-foreground">$</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={editPrices[s.name] ?? String(s.price)}
+                              onChange={(e) =>
+                                setEditPrices((prev) => ({ ...prev, [s.name]: e.target.value }))
+                              }
+                              className="w-24 h-7 rounded border border-input bg-background px-2 text-xs text-right"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      {editError && (
+                        <div className="flex items-center gap-1.5 text-xs text-destructive">
+                          <AlertTriangle className="h-3 w-3 shrink-0" />
+                          {editError}
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleSaveEdit}
+                          disabled={editLoading}
+                          className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#3A6B4C] text-white text-xs font-medium hover:bg-[#2F5A3F] transition-colors disabled:opacity-50"
+                        >
+                          {editLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                          Save Changes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setEditingQuote(null); setEditError(null) }}
+                          className="px-3 py-1 rounded border border-input text-xs hover:bg-muted transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
