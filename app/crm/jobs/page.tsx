@@ -117,7 +117,6 @@ export default async function JobsPage({ searchParams }: PageProps) {
                           {job.client_phone && (
                             <a
                               href={`sms:${job.client_phone.replace(/[^\d+]/g, "")}`}
-                              onClick={(e) => e.stopPropagation()}
                               className="block text-xs text-[#3A6B4C] hover:underline"
                             >
                               {job.client_phone}
