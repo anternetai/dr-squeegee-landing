@@ -61,6 +61,7 @@ export interface KnockStats {
 
 export interface DoorVisit {
   date: string
+  time?: string
   answered: boolean
   pitched?: boolean
   closed?: boolean

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { X, DollarSign } from "lucide-react"
+import { X, DollarSign, Calendar, Clock } from "lucide-react"
 import type { DoorVisit } from "@/lib/the-move/types"
 
 type Step = "answer" | "pitch" | "close" | "notes"
@@ -16,9 +16,11 @@ interface DoorLogOverlayProps {
 }
 
 export function DoorLogOverlay({ onComplete, onCancel, isRevisit, doorInfo }: DoorLogOverlayProps) {
+  const now = new Date()
   const [step, setStep] = useState<Step>("answer")
   const [visit, setVisit] = useState<Partial<DoorVisit>>({
-    date: new Date().toISOString().split("T")[0],
+    date: now.toISOString().split("T")[0],
+    time: now.toTimeString().slice(0, 5),
     answered: false,
   })
   const [notes, setNotes] = useState("")
@@ -28,6 +30,7 @@ export function DoorLogOverlay({ onComplete, onCancel, isRevisit, doorInfo }: Do
   function finish() {
     onComplete({
       date: visit.date!,
+      time: visit.time || undefined,
       answered: visit.answered ?? false,
       pitched: visit.pitched,
       closed: visit.closed,
@@ -54,6 +57,27 @@ export function DoorLogOverlay({ onComplete, onCancel, isRevisit, doorInfo }: Do
       {/* Step 1: Did they answer? */}
       {step === "answer" && (
         <div className="space-y-3">
+          {/* Date + Time row */}
+          <div className="flex items-center gap-2 justify-center">
+            <div className="relative">
+              <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-stone-500" />
+              <input
+                type="date"
+                value={visit.date}
+                onChange={(e) => setVisit({ ...visit, date: e.target.value })}
+                className="h-8 w-[130px] rounded-md border border-stone-700 bg-stone-800 pl-7 pr-2 text-xs text-stone-200"
+              />
+            </div>
+            <div className="relative">
+              <Clock className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-stone-500" />
+              <input
+                type="time"
+                value={visit.time}
+                onChange={(e) => setVisit({ ...visit, time: e.target.value })}
+                className="h-8 w-[110px] rounded-md border border-stone-700 bg-stone-800 pl-7 pr-2 text-xs text-stone-200"
+              />
+            </div>
+          </div>
           <p className="text-center text-sm font-medium text-stone-300">Did they answer?</p>
           <div className="flex justify-center gap-3">
             <Button

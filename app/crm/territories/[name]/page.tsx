@@ -493,7 +493,7 @@ export default function CrmTerritoryDetailPage({
             <div className="max-h-32 space-y-2 overflow-y-auto mb-3">
               {[...detailDoor.visits].reverse().map((v, i) => (
                 <div key={i} className="flex items-start gap-2 text-xs">
-                  <span className="shrink-0 text-muted-foreground">{v.date}</span>
+                  <span className="shrink-0 text-muted-foreground">{v.date}{v.time ? ` ${v.time}` : ""}</span>
                   <span
                     className={
                       v.closed

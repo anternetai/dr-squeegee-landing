@@ -298,7 +298,7 @@ export default function TerritoryDetailPage({ params }: { params: Promise<{ name
               <div className="max-h-32 space-y-2 overflow-y-auto mb-3">
                 {[...detailDoor.visits].reverse().map((v, i) => (
                   <div key={i} className="flex items-start gap-2 text-xs">
-                    <span className="shrink-0 text-stone-600">{v.date}</span>
+                    <span className="shrink-0 text-stone-600">{v.date}{v.time ? ` ${v.time}` : ""}</span>
                     <span className={
                       v.closed ? "text-green-400" :
                       v.not_interested ? "text-red-400" :
