@@ -101,6 +101,10 @@ const STATUS_COLORS: Record<string, string> = {
   archived: "#6b7280",
 }
 
+// ─── Revenue per showed appointment ───────────────────────────────────────────
+
+const REVENUE_PER_DEMO = 200 // $200 per showed appointment
+
 // ─── KPI Card ──────────────────────────────────────────────────────────────────
 
 function KpiCard({
@@ -110,6 +114,7 @@ function KpiCard({
   rateLabel,
   icon: Icon,
   accent,
+  revenueProjection,
 }: {
   label: string
   value: number
@@ -117,6 +122,7 @@ function KpiCard({
   rateLabel?: string
   icon: typeof Phone
   accent: string
+  revenueProjection?: boolean
 }) {
   return (
     <Card className="bg-card">
@@ -131,6 +137,11 @@ function KpiCard({
         {rate !== undefined && rateLabel && (
           <p className={cn("text-xs font-medium", accent)}>
             {rate.toFixed(1)}% {rateLabel}
+          </p>
+        )}
+        {revenueProjection && value > 0 && (
+          <p className="text-xs font-semibold text-emerald-400">
+            ${(value * REVENUE_PER_DEMO).toLocaleString()} projected
           </p>
         )}
       </CardContent>
@@ -308,6 +319,14 @@ export function DialerStats() {
             <span className="text-sm font-bold tabular-nums">{today.demos}</span>
             <span className="text-xs text-muted-foreground">demos booked</span>
           </div>
+          {today.demos > 0 && (
+            <div className="flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5">
+              <span className="text-xs font-semibold text-emerald-400">
+                ${(today.demos * REVENUE_PER_DEMO).toLocaleString()}
+              </span>
+              <span className="text-[10px] text-emerald-400/60">projected</span>
+            </div>
+          )}
           {today.dials > 0 && (
             <span className="ml-auto text-xs text-muted-foreground">
               {today.demos > 0
@@ -357,6 +376,7 @@ export function DialerStats() {
           rateLabel="close rate"
           icon={CalendarCheck}
           accent="text-emerald-500"
+          revenueProjection
         />
       </div>
 
